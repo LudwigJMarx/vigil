@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>vigil</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <header>
+    <h1>vigil</h1>
+    <span class="muted" id="subtitle">signal layer</span>
+    <span class="status" id="status">connecting…</span>
+  </header>
+
+  <main>
+    <section id="unlock" class="card" hidden>
+      <p>This instance needs an API token. Create one on the machine that runs the
+        server with <code>vigil token create --name browser</code>, then paste it here.
+        It is kept in this browser's local storage and sent as a bearer token.</p>
+      <div class="row">
+        <input id="token-input" class="grow" type="password" placeholder="vgl_…" autocomplete="off">
+        <button class="action" id="token-save">Use token</button>
+      </div>
+      <p class="warn" id="unlock-error" hidden></p>
+    </section>
+
+    <div id="app" hidden>
+      <nav>
+        <button data-view="accounts" aria-current="true">Accounts</button>
+        <button data-view="rules">Scoring rules</button>
+        <button data-view="tokens">Tokens</button>
+      </nav>
+
+      <section id="view-accounts">
+        <div class="card">
+          <div class="row">
+            <input id="new-account-name" class="grow" placeholder="Account name">
+            <input id="new-account-profile" class="grow" placeholder="LinkedIn company URL (optional)">
+            <select id="new-account-stage">
+              <option value="acquire">acquire</option>
+              <option value="expand">expand</option>
+              <option value="retain">retain</option>
+            </select>
+            <button class="action" id="new-account-save">Add</button>
+          </div>
+        </div>
+        <p class="muted" id="accounts-scope"></p>
+        <table>
+          <thead>
+            <tr>
+              <th>Account</th><th>Stage</th><th>Strongest signal</th>
+              <th class="num">14 d</th><th class="num">Score</th>
+            </tr>
+          </thead>
+          <tbody id="accounts-body"></tbody>
+        </table>
+      </section>
+
+      <section id="view-account" hidden></section>
+
+      <section id="view-rules" hidden>
+        <p class="muted">A kind with no enabled rule is stored on the timeline and
+          scores nothing. The list below is what this instance actually applies.</p>
+        <table>
+          <thead>
+            <tr><th>Kind</th><th class="num">Weight</th><th class="num">Half-life (days)</th>
+              <th>Enabled</th><th>Note</th><th></th></tr>
+          </thead>
+          <tbody id="rules-body"></tbody>
+        </table>
+      </section>
+
+      <section id="view-tokens" hidden>
+        <div class="card">
+          <div class="row">
+            <input id="new-token-name" class="grow" placeholder="What will use this token?">
+            <button class="action" id="new-token-save">Issue token</button>
+          </div>
+          <div id="new-token-secret" hidden>
+            <p>Copy it now. It is stored as a hash and cannot be shown again.</p>
+            <p class="secret"><code id="new-token-value"></code></p>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Created</th><th>Last used</th><th>State</th><th></th></tr></thead>
+          <tbody id="tokens-body"></tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
