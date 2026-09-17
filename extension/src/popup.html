@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Capture for vigil</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <p id="status" class="status">Reading the page…</p>
+
+  <form id="form" hidden>
+    <label>Account
+      <input id="account-name" required placeholder="Which company is this about?">
+    </label>
+    <label>Account profile
+      <input id="account-profile" placeholder="linkedin.com/company/…">
+    </label>
+    <label>Person <span class="muted">(optional)</span>
+      <input id="person-name" placeholder="Who">
+    </label>
+    <label>Signal
+      <select id="kind"></select>
+    </label>
+    <label>When
+      <input id="occurred-at" type="datetime-local" required>
+    </label>
+    <label>Title
+      <input id="title">
+    </label>
+    <label>What you saw
+      <textarea id="body" rows="4" placeholder="Select text on the page before clicking, or type it here."></textarea>
+    </label>
+    <div class="row">
+      <button type="submit" id="send">Send to vigil</button>
+      <a href="#" id="open-options">Settings</a>
+    </div>
+  </form>
+
+  <p id="result" class="result" hidden></p>
+
+  <script src="../dist/popup.js" type="module"></script>
+</body>
+</html>

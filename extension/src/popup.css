@@ -1,0 +1,18 @@
+:root { color-scheme: light dark; --line: #d0d7de; --muted: #6b7280; }
+@media (prefers-color-scheme: dark) { :root { --line: #30363d; --muted: #8b949e; } }
+body { font: 14px/1.45 system-ui, sans-serif; margin: 0; padding: .9rem; min-width: 22rem; }
+h1 { font-size: 1rem; margin: 0 0 .75rem; }
+label { display: block; margin-bottom: .55rem; font-size: .8rem; color: var(--muted); }
+input, select, textarea {
+  display: block; width: 100%; margin-top: .15rem; font: inherit; color: inherit;
+  background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: .35rem .45rem;
+}
+.row { display: flex; gap: .6rem; align-items: center; margin-top: .6rem; }
+button { font: inherit; padding: .4rem .8rem; border: 1px solid var(--line); border-radius: 6px;
+  background: transparent; color: inherit; cursor: pointer; }
+button[disabled] { opacity: .5; cursor: not-allowed; }
+.muted, a { color: var(--muted); font-size: .8rem; }
+.status, .result { font-size: .85rem; margin: .4rem 0; }
+.result.bad { color: #b42318; }
+@media (prefers-color-scheme: dark) { .result.bad { color: #ff7b72; } }
+code { font-family: ui-monospace, Menlo, monospace; }

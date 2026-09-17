@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>vigil settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>vigil</h1>
+  <form id="form">
+    <label>Server
+      <input id="server" required placeholder="http://127.0.0.1:8099">
+    </label>
+    <label>Token
+      <input id="token" type="password" required placeholder="vgl_…" autocomplete="off">
+    </label>
+    <p class="muted">Create one on the machine running vigil:
+      <code>vigil token create --name browser</code>. It is stored in this
+      browser's local extension storage and is never synced to another device.</p>
+    <div class="row">
+      <button type="submit">Save</button>
+      <button type="button" id="check">Test connection</button>
+    </div>
+  </form>
+  <p id="result" class="result" hidden></p>
+
+  <script src="../dist/options.js" type="module"></script>
+</body>
+</html>
