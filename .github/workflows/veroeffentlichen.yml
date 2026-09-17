@@ -47,7 +47,14 @@ jobs:
           GOARCH: ${{ matrix.ziel.goarch }}
           CGO_ENABLED: "0"
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          # Bei einem Tag ist GITHUB_REF_NAME "v0.1.0". Bei workflow_dispatch
+          # ist es der Zweigname, und "main" waere eine Versionsnummer, die ein
+          # Binary spaeter in jedem Fehlerbericht meldet.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="0.0.0-$(git rev-parse --short HEAD)"
+          fi
           name="vigil-${version}-${GOOS}-${GOARCH}"
           mkdir -p "dist/${name}"
           binary="dist/${name}/vigil"
@@ -85,13 +92,27 @@ jobs:
 
       # Eine Pruefsumme, die niemand nachrechnen kann, ist Dekoration. Die Datei
       # liegt neben den Archiven und nennt jedes einzeln.
+      #
+      # Dass ALLE Archive da sind, garantiert `needs: bauen` zusammen mit
+      # `if-no-files-found: error`: faellt ein Matrix-Ziel aus, laeuft dieser
+      # Job gar nicht erst. Hier ist nur abzufangen, dass ueberhaupt etwas
+      # angekommen ist - ein Release mit null Dateien ist sonst ein gruener Lauf.
       - name: Pruefsummen
         run: |
           cd dist
-          sha256sum * > checksums.txt
+          ls -1
+          anzahl=$(ls -1 vigil-*.tar.gz vigil-*.zip 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$anzahl" -eq 0 ]; then
+            echo "Kein Archiv in dist/. Das Herunterladen der Artefakte hat nichts geliefert."
+            exit 1
+          fi
+          sha256sum vigil-*.tar.gz vigil-*.zip > checksums.txt
+          echo "$anzahl Archiv(e) mit Pruefsumme:"
           cat checksums.txt
 
       - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           generate_release_notes: true
+          # Ohne das ist ein Release ohne angehaengte Datei ein Erfolg.
+          fail_on_unmatched_files: true
