@@ -26,11 +26,26 @@ fails the build if a host permission, an alarm or a periodic fetch appears here.
 
 ## Install
 
-```
-npm install --prefix extension   # nothing to install yet, but it pins the versions
-npm run --prefix extension build
+```bash
+cd extension
+npm install
+npm run build
 ```
 
-Then in Chrome: `chrome://extensions` → Developer mode → Load unpacked →
-select this `extension/` directory. Open the options page and enter the URL of
-your vigil server and a token from `vigil token create`.
+`npm run build` writes `dist/`, which `manifest.json` points at. Chrome loads
+the source directory, not a packaged file, so there is no bundler and no zip.
+
+Then in Chrome:
+
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode**, top right.
+3. **Load unpacked**, and pick this `extension/` directory. Not `src/`, not
+   `dist/`: the directory holding `manifest.json`.
+4. The extension ships no icon, so Chrome shows a grey placeholder in the
+   toolbar. That is not a failure. Pin it so it is one click away.
+5. Right-click the icon → **Options**, enter your server URL and a token from
+   `vigil token create --name chrome`, then press **Test connection**. It should
+   answer with the counts your instance holds.
+
+Now open a LinkedIn company page, select the text that matters, and click the
+icon.
