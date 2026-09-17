@@ -1,0 +1,24 @@
+{
+  "why": "The Go server and the TypeScript extension both reduce a LinkedIn URL to the form vigil stores accounts under. If the two ever disagree, one company quietly becomes two accounts and every score is split in half. Both sides read this file, so a change on one side that the other does not follow turns red instead of turning into a duplicate.",
+  "cases": [
+    { "input": "https://www.linkedin.com/in/jane-doe/", "want": "linkedin.com/in/jane-doe" },
+    { "input": "https://de.linkedin.com/in/jane-doe", "want": "linkedin.com/in/jane-doe" },
+    { "input": "linkedin.com/in/Jane-Doe", "want": "linkedin.com/in/jane-doe" },
+    { "input": "https://www.linkedin.com/in/jane-doe/?trk=public_profile_browsemap", "want": "linkedin.com/in/jane-doe" },
+    { "input": "HTTPS://WWW.LINKEDIN.COM/in/jane-doe", "want": "linkedin.com/in/jane-doe" },
+    { "input": "https://www.linkedin.com/in/jane-doe/recent-activity/all/", "want": "linkedin.com/in/jane-doe" },
+    { "input": "https://www.linkedin.com/company/acme-gmbh/", "want": "linkedin.com/company/acme-gmbh" },
+    { "input": "https://www.linkedin.com/company/acme-gmbh/jobs", "want": "linkedin.com/company/acme-gmbh" },
+    { "input": "https://www.linkedin.com/school/tu-berlin/", "want": "linkedin.com/school/tu-berlin" },
+    { "input": "https://www.linkedin.com/showcase/acme-cloud/", "want": "linkedin.com/showcase/acme-cloud" },
+    { "input": "", "want": "" },
+    { "input": "   ", "want": "" },
+    { "input": "not a url at all", "want": "" },
+    { "input": "https://example.com/in/jane-doe", "want": "" },
+    { "input": "https://linkedin.com.example.org/in/jane-doe", "want": "" },
+    { "input": "https://a.b.linkedin.com/in/jane-doe", "want": "" },
+    { "input": "https://www.linkedin.com/feed/", "want": "" },
+    { "input": "https://www.linkedin.com/in/", "want": "" },
+    { "input": "https://www.linkedin.com/jobs/view/123", "want": "" }
+  ]
+}
