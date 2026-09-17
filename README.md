@@ -236,6 +236,8 @@ the binding list. Among them:
   `Signed-off-by` line.
 - `scripts/pruefe-release-abgesichert.py` fails the build if a job in the release
   workflow can reach the publish step without going through these checks first.
+- `scripts/pruefe-keine-bauartefakte.py` fails the build if a file is tracked and
+  matched by `.gitignore` at the same time. `git status` cannot show that case.
 
 [CONTRIBUTING.md](CONTRIBUTING.md) has the rest, including what a pull request
 has to show before it can be reviewed.

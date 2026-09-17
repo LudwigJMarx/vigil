@@ -37,14 +37,31 @@ Am 17.09.2026 hat dieselbe Regel in der Erweiterung gefehlt:
 (`^…$`), und `draftFrom` probiert die Zeilen der Markierung einzeln. Zwei Tests
 halten beides fest.
 
-### Der Fingerabdruck enthält die Zeit nur, wenn es keine URL gibt
+### Was eine URL wert ist, hängt davon ab, worauf sie zeigt
 
 LinkedIn rendert "2d". Das löst bei jeder Aufnahme zu einem anderen Zeitpunkt
-auf. Wäre die Zeit Teil der Identität, wäre jede zweite Aufnahme desselben
-Beitrags ein neues Signal, und das Konto bekäme für ein Ereignis mehrfach
-Gewicht. Mit URL identifizieren `source`, `kind` und die bereinigte URL das
-Signal. Ohne URL zählen Zeit und Text mit, und zwei Notizen eine Minute
-auseinander bleiben zwei Notizen.
+auf. Die Zeit gehört deshalb nie zur Identität, solange es eine URL gibt: sonst
+wäre jede zweite Aufnahme desselben Beitrags ein neues Signal.
+
+Drei Fälle, und der mittlere war bis zum 17.09.2026 falsch:
+
+| URL | Identität |
+|---|---|
+| Dauerlink (`/feed/update/…`, `/posts/…`) | `source`, `kind`, URL. Der Link benennt genau ein Element |
+| Profil- oder Firmenseite (`/in/`, `/company/`, …) | zusätzlich Titel und Text. Die Seite benennt einen **Ort**, keine Beobachtung |
+| keine | `source`, `kind`, Konto, Person, Zeit, Titel, Text |
+
+Vorher entschied auch bei der Firmenseite die URL allein. Da jede Erfassung von
+dort dieselbe URL trägt, kam die zweite als „already known" zurück und war weg.
+Stiller Verlust im Kostüm richtiger Entdoppelung, und das ist die schlimmste
+Form, die ein Fehler hier annehmen kann: von aussen sehen beide gleich aus.
+
+Gefunden, indem das Popup der Erweiterung gegen eine laufende Instanz gefahren
+wurde, nicht von einem Test. Jetzt hängen drei Tests in `internal/core` und
+zwei in `internal/api` daran, letztere durch den Ingest-Endpunkt, weil dort der
+Verlust auftrat. Die Unterscheidung nutzt `NormalizeProfile`: sie antwortet
+genau bei den Ortsseiten nicht-leer, also gibt es eine Regel dafür und keine
+zweite Liste.
 
 ### Eine Antwort nennt ihren Umfang
 
@@ -130,6 +147,25 @@ Die Unterschrift muss die Adresse des **Autors** des Commits nennen. Sonst
 unterschreibt A für die Arbeit von B, und die Erklärung ist keine Erklärung
 über die eigene Arbeit mehr.
 
+### `.gitignore` wirkt nicht rückwirkend
+
+Am 17.09.2026 lag das gebaute 10-MB-Binary `vigil` seit dem Wurzel-Commit im
+Repo, öffentlich, bei einer Gesamtgröße von 4,4 MB auf GitHub. Hineingeraten
+über ein `git add -A` während eines `git rebase --root`: der Baum trug zu dem
+Zeitpunkt noch die `.gitignore` der Projektvorlage, in der `/vigil` fehlte.
+
+Aufgefallen ist es Stunden später, und der Grund ist die eigentliche Lehre:
+`.gitignore` gilt nur für **unverfolgte** Dateien. Einmal verfolgt, verschwindet
+eine Datei aus `git status`, obwohl sie ignoriert ist. Ein Blick auf
+„Arbeitsbaum sauber" kann „nichts hinzuzufügen" und „längst verschluckt" nicht
+unterscheiden. Genau die Sorte Prüfung, vor der die Hausregeln warnen, und sie
+stand in der eigenen Kontrolle.
+
+`git ls-files --cached --ignored --exclude-standard` zeigt es, und
+`pruefe-keine-bauartefakte.py` ruft das in der CI auf. Wer nach einem
+`rebase --exec ... git add -A` weiterarbeitet, prüft zusätzlich `git show --stat`
+auf den umgeschriebenen Commits.
+
 ### Ein Tag veröffentlicht nichts Ungeprüftes
 
 `Pruefungen` läuft bei Push auf main und bei jedem Beitrag, **nicht** bei einem
@@ -188,6 +224,7 @@ Die Prüfer dieses Projekts:
 | `pruefe-lizenzhinweise.py` | `THIRD-PARTY-NOTICES.md` deckt genau die Module ab, die `go list -deps ./cmd/vigil` meldet | ob die Lizenzen miteinander verträglich sind. Es sammelt, es beurteilt nicht |
 | `pruefe-herkunftszeile.py` | jeder Commit eines Beitrags trägt `Signed-off-by` mit der Adresse seines Autors | ob die Zusicherung stimmt. Eine Erklärung ist keine Prüfung |
 | `pruefe-release-abgesichert.py` | jeder Job in `veroeffentlichen.yml` erreicht über `needs` den Job, der `pruefungen.yml` aufruft | ob die Prüfungen selbst etwas taugen. Dafür gibt es `pruefer-verdrahtet.py` |
+| `pruefe-keine-bauartefakte.py` | keine Datei ist verfolgt und zugleich von `.gitignore` erfasst | ein Bauartefakt, das keine Regel erfasst. Er hält den Widerspruch fest, nicht jede Unordnung |
 
 `scripts/pruefer.test.py` testet die beiden projekteigenen Prüfer. Beide
 Testklassen bauen Bäume, in denen es etwas zu finden gibt, **und** laufen

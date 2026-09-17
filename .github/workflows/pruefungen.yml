@@ -91,6 +91,9 @@ jobs:
       - name: Der Release haengt an diesen Pruefungen
         run: python3 scripts/pruefe-release-abgesichert.py
 
+      - name: Kein Bauartefakt im Repo
+        run: python3 scripts/pruefe-keine-bauartefakte.py
+
       - name: Go ist formatiert
         run: |
           ungeformt="$(gofmt -l ./cmd ./internal)"

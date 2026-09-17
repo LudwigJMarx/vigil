@@ -29,6 +29,7 @@ HINTERGRUND = HIER / "pruefe-keine-hintergrundabfrage.py"
 HERKUNFT = HIER / "pruefe-herkunftszeile.py"
 LIZENZEN = HIER / "pruefe-lizenzhinweise.py"
 ABGESICHERT = HIER / "pruefe-release-abgesichert.py"
+BAUARTEFAKTE = HIER / "pruefe-keine-bauartefakte.py"
 
 SAUBERES_MANIFEST = {
     "manifest_version": 3,
@@ -508,6 +509,89 @@ jobs:
         lauf = self.laufe(self.baue(einer))
         self.assertEqual(lauf.returncode, 1)
         self.assertIn("Job(s) erkannt", lauf.stderr)
+
+
+class KeineBauartefakte(unittest.TestCase):
+    """Verfolgt und ignoriert zugleich.
+
+    Gegen echte Repositories, weil genau das der Fall ist, den `git status`
+    nicht zeigt: .gitignore wirkt nur auf unverfolgte Dateien, und eine einmal
+    verfolgte Datei verschwindet still aus der Anzeige.
+    """
+
+    def repo(self, gitignore: str = "artefakt\n") -> Path:
+        wurzel = Path(tempfile.mkdtemp())
+        self.git(wurzel, "init", "--quiet", "--initial-branch", "main")
+        self.git(wurzel, "config", "user.name", "Test Person")
+        self.git(wurzel, "config", "user.email", "test@example.org")
+        (wurzel / ".gitignore").write_text(gitignore, encoding="utf-8")
+        (wurzel / "quelle.txt").write_text("code\n", encoding="utf-8")
+        self.git(wurzel, "add", "-A")
+        self.git(wurzel, "commit", "--quiet", "-m", "chore: basis")
+        return wurzel
+
+    def git(self, wurzel: Path, *argumente: str) -> None:
+        lauf = subprocess.run(["git", "-C", str(wurzel), *argumente],
+                              capture_output=True, text=True)
+        self.assertEqual(lauf.returncode, 0, lauf.stderr)
+
+    def laufe(self, wurzel: Path) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(BAUARTEFAKTE), "--wurzel", str(wurzel)],
+            capture_output=True, text=True,
+        )
+
+    def test_dieses_repo_ist_sauber(self):
+        lauf = self.laufe(HIER.parent)
+        self.assertEqual(lauf.returncode, 0, lauf.stdout + lauf.stderr)
+        self.assertIn("0 Befund(e)", lauf.stdout)
+
+    def test_ein_sauberes_repo_geht_durch(self):
+        lauf = self.laufe(self.repo())
+        self.assertEqual(lauf.returncode, 0, lauf.stdout)
+
+    def test_eine_verfolgte_und_ignorierte_datei_faellt_auf(self):
+        # Genau der Fall vom 17.09.2026: das gebaute Binary geriet ueber ein
+        # `git add -A` in den Verlauf, als die .gitignore es noch nicht kannte,
+        # und blieb danach unsichtbar, weil `git status` verfolgte Dateien
+        # nicht mehr als ignoriert meldet.
+        wurzel = self.repo(gitignore="")
+        (wurzel / "artefakt").write_bytes(b"\x00" * 2048)
+        self.git(wurzel, "add", "-A")
+        self.git(wurzel, "commit", "--quiet", "-m", "chore: aus versehen")
+        (wurzel / ".gitignore").write_text("artefakt\n", encoding="utf-8")
+        self.git(wurzel, "add", "-A")
+        self.git(wurzel, "commit", "--quiet", "-m", "chore: regel nachgereicht")
+
+        # git status sieht nichts, und genau das ist das Problem.
+        status = subprocess.run(["git", "-C", str(wurzel), "status", "--short"],
+                                capture_output=True, text=True)
+        self.assertEqual(status.stdout.strip(), "", "git status meldet den Fall doch")
+
+        lauf = self.laufe(wurzel)
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("artefakt", lauf.stdout)
+        self.assertIn("KiB", lauf.stdout)
+
+    def test_nach_git_rm_cached_ist_es_behoben(self):
+        wurzel = self.repo(gitignore="")
+        (wurzel / "artefakt").write_bytes(b"\x00" * 2048)
+        self.git(wurzel, "add", "-A")
+        self.git(wurzel, "commit", "--quiet", "-m", "chore: aus versehen")
+        (wurzel / ".gitignore").write_text("artefakt\n", encoding="utf-8")
+        self.git(wurzel, "add", "-A")
+        self.git(wurzel, "commit", "--quiet", "-m", "chore: regel nachgereicht")
+        self.assertEqual(self.laufe(wurzel).returncode, 1)
+
+        self.git(wurzel, "rm", "--cached", "--quiet", "artefakt")
+        self.git(wurzel, "commit", "--quiet", "-m", "chore: aus der verfolgung")
+        self.assertEqual(self.laufe(wurzel).returncode, 0)
+
+    def test_kein_repository_meldet_nicht_gruen(self):
+        with tempfile.TemporaryDirectory() as leer:
+            lauf = self.laufe(Path(leer))
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("scheiterte", lauf.stderr)
 
 
 if __name__ == "__main__":
