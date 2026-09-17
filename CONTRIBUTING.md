@@ -27,6 +27,33 @@ Everything else is ordinary. Formatting is `gofmt` and whatever `tsc` accepts.
 Commit messages are Conventional Commits, lowercase subject, under 72
 characters.
 
+## Sign off what you send
+
+vigil uses the [Developer Certificate of Origin](DCO). Apache-2.0 §5 already
+settles which licence your contribution is under; the DCO is the other half,
+where you state that you had the right to send it in the first place.
+
+You make that statement with a line at the end of each commit message:
+
+```
+Signed-off-by: Your Name <you@example.org>
+```
+
+`git commit -s` adds it from your `user.name` and `user.email`. Forgot it?
+
+```bash
+git commit --amend -s      # the last commit
+git rebase --signoff main  # everything since main
+```
+
+CI checks every commit in a pull request. The address in the sign-off has to be
+the address of the commit author, because otherwise one person is certifying
+another person's work, which is not what the certificate says.
+
+There is no CLA, no bot, no account to create, and no copyright assignment. You
+keep your copyright. Add yourself to [AUTHORS](AUTHORS) in the same pull request
+as your first change.
+
 ## Before you open anything
 
 ```bash
@@ -34,7 +61,8 @@ make check
 ```
 
 That runs exactly what CI runs, in the same order. It needs Go 1.26, Node 24 and
-Python 3.
+Python 3. The one step it leaves out is the sign-off check, because that needs a
+base to compare against and only exists once the pull request does.
 
 ## The checkers
 
@@ -53,6 +81,13 @@ pull request. See [docs/entscheidungen/0002-kein-scraping.md](docs/entscheidunge
 `scripts/pruefe-doku-befehle.py` fails if the README shows a command the binary
 does not have. It gets the command list from `vigil help` at run time, not from
 a second list in the script.
+
+`scripts/pruefe-lizenzhinweise.py` fails if `THIRD-PARTY-NOTICES.md` does not
+match the modules actually linked into the binary. MIT and BSD-3-Clause both
+require the copyright notice and licence text to accompany a binary
+distribution, and a missing one is a licence violation that produces no error
+message and no complaint, only downloads. Adding a dependency therefore means
+running `make lizenzen` and committing the result.
 
 ## Tests
 

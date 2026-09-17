@@ -23,6 +23,7 @@
 
 ## Checklist
 
+- [ ] Every commit is signed off (`git commit -s`), see [DCO](../DCO)
 - [ ] `make check` passes
 - [ ] The test in this PR is red before the change and green after, and both runs are pasted above
 - [ ] The diff contains nothing that is not needed for the problem above

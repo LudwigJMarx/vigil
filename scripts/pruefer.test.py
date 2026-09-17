@@ -25,6 +25,8 @@ from pathlib import Path
 
 HIER = Path(__file__).resolve().parent
 HINTERGRUND = HIER / "pruefe-keine-hintergrundabfrage.py"
+HERKUNFT = HIER / "pruefe-herkunftszeile.py"
+LIZENZEN = HIER / "pruefe-lizenzhinweise.py"
 
 SAUBERES_MANIFEST = {
     "manifest_version": 3,
@@ -199,6 +201,156 @@ class DokuBefehle(unittest.TestCase):
         )
         self.assertEqual(lauf.returncode, 0, lauf.stdout + lauf.stderr)
         self.assertIn("go run ./cmd/vigil help", lauf.stdout)
+
+
+class Herkunftszeile(unittest.TestCase):
+    """Der DCO-Pruefer, gegen echte Git-Baeume.
+
+    Es gibt hier keine Attrappe: `git log` ist genau das, was schiefgehen kann,
+    und ein Test, der die Commits von Hand hineinreicht, haette den Fall mit
+    der abweichenden Autorenadresse nie gesehen.
+    """
+
+    def repo(self) -> Path:
+        verzeichnis = Path(tempfile.mkdtemp())
+        self.git(verzeichnis, "init", "--quiet", "--initial-branch", "main")
+        self.git(verzeichnis, "config", "user.name", "Test Person")
+        self.git(verzeichnis, "config", "user.email", "test@example.org")
+        self.git(verzeichnis, "commit", "--quiet", "--allow-empty",
+                 "-m", "chore: basis", "-m", "Signed-off-by: Test Person <test@example.org>")
+        return verzeichnis
+
+    def git(self, wurzel: Path, *argumente: str) -> None:
+        lauf = subprocess.run(["git", "-C", str(wurzel), *argumente],
+                              capture_output=True, text=True)
+        self.assertEqual(lauf.returncode, 0, lauf.stderr)
+
+    def laufe(self, wurzel: Path, bereich: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(HERKUNFT), "--bereich", bereich],
+            cwd=wurzel, capture_output=True, text=True,
+        )
+
+    def test_ein_unterschriebener_commit_geht_durch(self):
+        wurzel = self.repo()
+        self.git(wurzel, "commit", "--quiet", "--allow-empty", "-s", "-m", "feat: etwas")
+        lauf = self.laufe(wurzel, "HEAD~1..HEAD")
+        self.assertEqual(lauf.returncode, 0, lauf.stdout + lauf.stderr)
+        self.assertIn("1 Commit(s)", lauf.stdout)
+
+    def test_ein_commit_ohne_zeile_faellt_auf(self):
+        wurzel = self.repo()
+        self.git(wurzel, "commit", "--quiet", "--allow-empty", "-m", "feat: etwas")
+        lauf = self.laufe(wurzel, "HEAD~1..HEAD")
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("keine Signed-off-by-Zeile", lauf.stdout)
+
+    def test_eine_fremde_unterschrift_zaehlt_nicht(self):
+        # Sonst unterschreibt A fuer die Arbeit von B, und die Erklaerung ist
+        # keine Erklaerung ueber die eigene Arbeit mehr.
+        wurzel = self.repo()
+        self.git(wurzel, "commit", "--quiet", "--allow-empty", "-m", "feat: etwas",
+                 "-m", "Signed-off-by: Jemand Anders <anders@example.org>")
+        lauf = self.laufe(wurzel, "HEAD~1..HEAD")
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("Autor ist aber test@example.org", lauf.stdout)
+
+    def test_gross_und_kleinschreibung_der_adresse_ist_egal(self):
+        wurzel = self.repo()
+        self.git(wurzel, "commit", "--quiet", "--allow-empty", "-m", "feat: etwas",
+                 "-m", "Signed-off-by: Test Person <TEST@Example.ORG>")
+        lauf = self.laufe(wurzel, "HEAD~1..HEAD")
+        self.assertEqual(lauf.returncode, 0, lauf.stdout)
+
+    def test_eine_zusammenfuehrung_braucht_keine_zeile(self):
+        # Die legt GitHub an, nicht der Beitragende.
+        wurzel = self.repo()
+        self.git(wurzel, "checkout", "--quiet", "-b", "zweig")
+        self.git(wurzel, "commit", "--quiet", "--allow-empty", "-s", "-m", "feat: zweig")
+        self.git(wurzel, "checkout", "--quiet", "main")
+        self.git(wurzel, "commit", "--quiet", "--allow-empty", "-s", "-m", "feat: main")
+        basis = subprocess.run(["git", "-C", str(wurzel), "rev-parse", "HEAD"],
+                               capture_output=True, text=True).stdout.strip()
+        self.git(wurzel, "merge", "--quiet", "--no-ff", "--no-verify",
+                 "-m", "Merge branch 'zweig'", "zweig")
+        lauf = self.laufe(wurzel, f"{basis}..HEAD")
+        self.assertEqual(lauf.returncode, 0, lauf.stdout)
+        self.assertIn("1 Zusammenfuehrung(en) ausgenommen", lauf.stdout)
+
+    def test_ein_leerer_bereich_meldet_nicht_gruen(self):
+        # "0 Befunde" ist auch, was ein Pruefer meldet, dessen Bereich daneben
+        # zeigt. In der CI waere das ein Beitrag, den niemand geprueft hat.
+        wurzel = self.repo()
+        lauf = self.laufe(wurzel, "HEAD..HEAD")
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("kein Commit im Bereich", lauf.stderr)
+
+    def test_ein_kaputter_bereich_bricht_laut_ab(self):
+        wurzel = self.repo()
+        lauf = self.laufe(wurzel, "gibtesnicht..HEAD")
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("scheiterte", lauf.stderr)
+
+
+class Lizenzhinweise(unittest.TestCase):
+    """Der Lizenz-Pruefer.
+
+    Es gibt keine Attrappe fuer `go list`: die Modulliste ist genau das, was
+    veraltet, und ein Test mit einer von Hand gereichten Liste haette das nie
+    bemerkt. Stattdessen laeuft der Pruefer im Verzeichnis des Projekts und
+    bekommt mit --wurzel ein Temporaerverzeichnis als Ablageort.
+    """
+
+    def laufe(self, wurzel: Path, *zusatz: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(LIZENZEN), "--wurzel", str(wurzel), *zusatz],
+            cwd=HIER.parent, capture_output=True, text=True,
+        )
+
+    def test_die_eingecheckte_datei_passt_zu_den_gelinkten_modulen(self):
+        # Der wichtigste Fall: der Baum, um den es geht. Wird er rot, fehlt in
+        # THIRD-PARTY-NOTICES.md der Lizenztext einer Abhaengigkeit, und jedes
+        # Release-Archiv wuerde ihn ebenfalls nicht enthalten.
+        lauf = self.laufe(HIER.parent)
+        self.assertEqual(lauf.returncode, 0, lauf.stdout + lauf.stderr)
+        self.assertIn("gelinkte(s) Modul(e)", lauf.stdout)
+
+    def test_eine_fehlende_datei_faellt_auf(self):
+        with tempfile.TemporaryDirectory() as leer:
+            lauf = self.laufe(Path(leer))
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("fehlt", lauf.stdout)
+
+    def test_eine_veraltete_datei_faellt_auf(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            wurzel = Path(tmp)
+            (wurzel / "THIRD-PARTY-NOTICES.md").write_text(
+                "# Third-party notices\n\nvon Hand gepflegt und laengst veraltet\n",
+                encoding="utf-8")
+            lauf = self.laufe(wurzel)
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("passt nicht", lauf.stdout)
+
+    def test_geschrieben_und_danach_gruen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            wurzel = Path(tmp)
+            schreiben = self.laufe(wurzel, "--schreiben")
+            self.assertEqual(schreiben.returncode, 0, schreiben.stdout + schreiben.stderr)
+            inhalt = (wurzel / "THIRD-PARTY-NOTICES.md").read_text(encoding="utf-8")
+            self.assertIn("modernc.org/sqlite", inhalt)
+            self.assertIn("Permission is hereby granted", inhalt)
+            self.assertEqual(self.laufe(wurzel).returncode, 0)
+
+    def test_jedes_modul_bringt_seinen_lizenztext_mit(self):
+        # Ein Eintrag ohne Text erfuellt die Auflage nicht. "see the text
+        # below" waere dann eine Luege auf Papier.
+        inhalt = (HIER.parent / "THIRD-PARTY-NOTICES.md").read_text(encoding="utf-8")
+        abschnitte = inhalt.split("\n## ")[1:]
+        self.assertGreaterEqual(len(abschnitte), 5, "zu wenige Module aufgefuehrt")
+        for abschnitt in abschnitte:
+            name = abschnitt.splitlines()[0]
+            self.assertIn("```", abschnitt, f"{name} hat keinen Lizenztext")
+            self.assertRegex(abschnitt, r"Copyright", f"{name} nennt keinen Urheber")
 
 
 if __name__ == "__main__":

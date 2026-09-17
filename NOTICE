@@ -1,14 +1,18 @@
 vigil
-Copyright 2026 Ludwig Marx
+Copyright 2026 The vigil Authors
 
 This product includes software developed at:
   https://github.com/LudwigJMarx/vigil
 
 Licensed under the Apache License, Version 2.0. See LICENSE.
 
+"The vigil Authors" is everyone who has had a contribution merged. The
+authoritative list is the commit history; AUTHORS names them for convenience
+and is not a second source of truth.
+
 vigil is not affiliated with, endorsed by, or connected to LinkedIn
 Corporation or Microsoft Corporation. "LinkedIn" is a trademark of LinkedIn
 Corporation.
 
-Third-party components are listed in go.mod and extension/package.json with
-their versions. Their licences are those of their authors.
+Third-party components distributed in the release archives are listed with
+their licences in THIRD-PARTY-NOTICES.md.

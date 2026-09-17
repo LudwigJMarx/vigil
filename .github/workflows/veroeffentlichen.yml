@@ -55,7 +55,11 @@ jobs:
           go build -trimpath \
             -ldflags "-s -w -X github.com/LudwigJMarx/vigil/internal/cli.Version=${version}" \
             -o "$binary" ./cmd/vigil
-          cp README.md LICENSE NOTICE "dist/${name}/"
+          # THIRD-PARTY-NOTICES.md muss mit: MIT und BSD-3-Clause verlangen
+          # beide, dass Urheberrechtsvermerk und Lizenztext der Weitergabe in
+          # Binaerform beiliegen. Ein Archiv ohne die Datei ist ein Verstoss
+          # gegen zehn fremde Lizenzen, und zwar einer, der nie auffaellt.
+          cp README.md LICENSE NOTICE THIRD-PARTY-NOTICES.md "dist/${name}/"
           if [ "$GOOS" = "windows" ]; then
             (cd dist && zip -qr "${name}.zip" "${name}")
           else

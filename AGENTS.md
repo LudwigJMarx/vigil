@@ -12,6 +12,10 @@ Rangfolge. Die eine Entscheidung, aus der alles andere folgt: **vigil stellt
 keine Anfrage an LinkedIn und verschickt keine Nachricht.** Es erinnert und
 ordnet, was der Mensch selbst erfasst hat.
 
+Lizenz: Apache-2.0. Rechteinhaber ist „The vigil Authors", nicht eine Person,
+damit die Angabe mitwächst und eine spätere Umlizenzierung ohne die Beitragenden
+nicht aus Versehen möglich aussieht.
+
 Zielgruppe ist nicht nur Ludwig. Das Repo ist öffentlich und soll von Fremden
 betrieben werden können, ohne Rückfrage. Deshalb sind Quelltext, README und
 alle Dateien unter `docs/` **englisch**; diese Datei, `CLAUDE.md`, die Prüfer
@@ -93,6 +97,39 @@ unbedachteste Bindung ist damit die kürzeste Schreibweise. `loopback()` in
 `internal/cli/cli.go` behandelt `""` ausdrücklich als öffentlich; die
 Tabelle im Test nennt `:8099`, `0.0.0.0:8099` und `[::]:8099` beim Namen.
 
+### Eine neue Abhängigkeit bringt ihren Lizenztext mit
+
+MIT und BSD-3-Clause verlangen beide, dass Urheberrechtsvermerk und Lizenztext
+der Weitergabe **in Binärform** beiliegen. Zehn fremde Module landen im Binary.
+Ein Release-Archiv ohne `THIRD-PARTY-NOTICES.md` ist ein Verstoß gegen zehn
+Lizenzen, und zwar einer ohne Fehlermeldung, ohne roten Lauf und ohne
+Beschwerde: er wird einfach mit jedem Download weitergegeben.
+
+`make lizenzen` erzeugt die Datei aus `go list -deps ./cmd/vigil`, nicht aus
+einer gepflegten Aufzählung. Wer eine Abhängigkeit hinzufügt und die Datei
+nicht mitliefert, bekommt einen roten Lauf.
+
+Am 17.09.2026 hielt die Erkennung drei der vier `modernc.org`-Module für
+unbekannt, weil sie nach `name of` suchte und deren dritte Klausel
+„Neither the names of the authors" lautet. Ein Etikett, das bei jedem vierten
+Modul danebenliegt, ist schlechter als keines: es sieht aus, als hätte jemand
+nachgesehen.
+
+### Der Herkunftsnachweis wird geprüft, nicht erbeten
+
+Apache-2.0 §5 regelt die Lizenz eines Beitrags, nicht das Recht, ihn
+einzureichen. Dafür gibt es das DCO. Ein Projekt, das ein DCO verlangt und es
+nicht prüft, hat keins: es hat einen Absatz, den die Hälfte der Beiträge nicht
+erfüllt und den niemand nachträglich einfordert, weil das unangenehm ist.
+
+`pruefe-herkunftszeile.py` läuft in der CI nur bei `pull_request`, weil der
+Bereich auf `main` leer wäre. Ein leerer Bereich ist dort mit Absicht ein
+Fehler: sonst sähe ein falsch gesetzter Bereich aus wie ein sauberer Beitrag.
+
+Die Unterschrift muss die Adresse des **Autors** des Commits nennen. Sonst
+unterschreibt A für die Arbeit von B, und die Erklärung ist keine Erklärung
+über die eigene Arbeit mehr.
+
 ### Die Erweiterung darf keinen Sonderfall bekommen
 
 Kein `host_permissions`, kein Service Worker, kein `content_scripts` mit
@@ -128,6 +165,8 @@ Die Prüfer dieses Projekts:
 | `pruefer-verdrahtet.py` | jeder Prüfer unter `scripts/` wird von einem Workflow erreicht | Prüfer, die der Namenskonvention nicht folgen |
 | `pruefe-keine-hintergrundabfrage.py` | `extension/manifest.json` und `extension/src/*.ts` auf Hintergrundarbeit | ausgeführtes Verhalten. Ein zusammengesetzter Aufruf kommt vorbei |
 | `pruefe-doku-befehle.py` | jeder `vigil …`-Aufruf in einem `bash`-Block existiert laut `vigil help` | ob Schalter, Ausgabe oder Beschreibung stimmen |
+| `pruefe-lizenzhinweise.py` | `THIRD-PARTY-NOTICES.md` deckt genau die Module ab, die `go list -deps ./cmd/vigil` meldet | ob die Lizenzen miteinander verträglich sind. Es sammelt, es beurteilt nicht |
+| `pruefe-herkunftszeile.py` | jeder Commit eines Beitrags trägt `Signed-off-by` mit der Adresse seines Autors | ob die Zusicherung stimmt. Eine Erklärung ist keine Prüfung |
 
 `scripts/pruefer.test.py` testet die beiden projekteigenen Prüfer. Beide
 Testklassen bauen Bäume, in denen es etwas zu finden gibt, **und** laufen
@@ -171,9 +210,13 @@ hinzufügt, macht ihn einmal absichtlich rot.
 ```bash
 make build                                 # ./vigil, statisch, ohne cgo
 make test                                  # go test -race plus die Tests der Erweiterung
-make check                                 # alles, was die CI tut, in derselben Reihenfolge
+make check                                 # alles, was die CI tut, ausser dem DCO-Schritt
+make lizenzen                              # THIRD-PARTY-NOTICES.md nach einer neuen Abhaengigkeit
 python3 scripts/pruefer-verdrahtet.py      # ruft die CI jeden Pruefer auf?
 ```
+
+`make check` lässt den DCO-Schritt aus: der braucht eine Basis zum Vergleichen
+und die gibt es erst, wenn der Beitrag existiert.
 
 ## Commits
 
@@ -181,6 +224,9 @@ python3 scripts/pruefer-verdrahtet.py      # ruft die CI jeden Pruefer auf?
 kleingeschrieben. Der Body erklärt die Beweislage: was behauptet wurde, was die
 Belege hergeben, warum dieser Weg und welcher naheliegende nicht funktioniert.
 Keine Aufzählung der geänderten Dateien; die steht im Diff.
+
+Jeder Commit trägt `Signed-off-by` mit der Adresse seines Autors, gesetzt von
+`git commit -s`. Der Wortlaut der Erklärung steht in `DCO`.
 
 Keine `Co-Authored-By`-Zeile für KI-Assistenten und kein Hinweis auf
 maschinelle Mitarbeit, weder im Commit noch im PR-Text. Menschliche Mit-Autoren
@@ -200,3 +246,5 @@ In Commit-Nachrichten ohne Umlaute und ohne Eszett schreiben.
 | TLS im Server | Löst jeder Reverse Proxy besser. `docs/deploy.md` zeigt einen |
 | DOM-Auswertung der LinkedIn-Seiten | Generiertes Markup. Ein Selektor, der still nicht mehr passt, macht ein lautes Konto zu einem leisen |
 | Telemetrie | vigil stellt keine Anfrage, die der Betreiber nicht ausgelöst hat |
+| CLA oder Rechteübertragung | Apache-2.0 §5 plus DCO deckt dasselbe ab, ohne Unterschrift, Bot oder Konto. Eine CLA wäre nur nötig, um später umzulizenzieren, und genau das soll nicht möglich sein, ohne die Beitragenden zu fragen |
+| AGPL | Sperrlisten in genau den Firmen, deren Vertrieb vigil benutzen soll. Dazu die offene Frage, wie weit §13 auf die Erweiterung reicht, die über HTTP mit dem Server redet. Auslegbarkeit beantwortet eine Rechtsabteilung mit „nein" |

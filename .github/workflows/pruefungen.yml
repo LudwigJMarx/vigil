@@ -31,7 +31,12 @@ jobs:
   pruefen:
     runs-on: ubuntu-latest
     steps:
+      # Die ganze Historie, weil der DCO-Schritt den Bereich zwischen Basis
+      # und Kopf des Beitrags liest. Mit fetch-depth 1 gibt es keinen Bereich,
+      # und der Pruefer haette nichts zu pruefen, ohne dass es auffiele.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -60,6 +65,17 @@ jobs:
         run: python3 scripts/pruefer.test.py
 
       # ── AB HIER DAS PROJEKT ─────────────────────────────────────────────
+
+      # Nur bei einem Beitrag. Auf main ist der Bereich leer, und ein leerer
+      # Bereich ist beim DCO-Pruefer mit Absicht ein Fehler.
+      - name: Jeder Commit traegt seine Herkunftszeile
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 scripts/pruefe-herkunftszeile.py \
+            --bereich "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
+      - name: Lizenztexte der Abhaengigkeiten sind vollstaendig
+        run: python3 scripts/pruefe-lizenzhinweise.py
 
       - name: Erweiterung sammelt nicht im Hintergrund
         run: python3 scripts/pruefe-keine-hintergrundabfrage.py

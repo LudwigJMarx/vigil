@@ -230,6 +230,10 @@ the binding list. Among them:
   permission, an alarm or a periodic fetch appears in the extension.
 - `scripts/pruefe-doku-befehle.py` fails the build if this file shows a command
   the binary does not have.
+- `scripts/pruefe-lizenzhinweise.py` fails the build if `THIRD-PARTY-NOTICES.md`
+  is out of date. `make lizenzen` regenerates it.
+- `scripts/pruefe-herkunftszeile.py` fails a pull request whose commits carry no
+  `Signed-off-by` line.
 
 [CONTRIBUTING.md](CONTRIBUTING.md) has the rest, including what a pull request
 has to show before it can be reviewed.
@@ -244,3 +248,12 @@ explains what vigil does to keep that boundary, and what it cannot do for you.
 ## Licence
 
 Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Contributions are covered by Apache-2.0 §5 and by the
+[Developer Certificate of Origin](DCO): sign off your commits with
+`git commit -s`. There is no CLA and no copyright assignment. Details in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+The Go modules linked into the binary are MIT and BSD-3-Clause. Their copyright
+notices and licence texts are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md),
+which is generated from the build and ships inside every release archive.
