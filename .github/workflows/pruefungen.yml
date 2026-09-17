@@ -34,20 +34,20 @@ jobs:
       # Die ganze Historie, weil der DCO-Schritt den Bereich zwischen Basis
       # und Kopf des Beitrags liest. Mit fetch-depth 1 gibt es keinen Bereich,
       # und der Pruefer haette nichts zu pruefen, ohne dass es auffiele.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
