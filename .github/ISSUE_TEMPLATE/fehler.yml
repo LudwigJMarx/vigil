@@ -1,0 +1,54 @@
+name: Bug report
+description: Something does not do what it says it does
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The parts below are the ones that decide whether this can be fixed
+        without a round trip. A report with a reproduction gets a fix; one
+        without gets a question.
+
+  - type: textarea
+    id: reproduktion
+    attributes:
+      label: How to reproduce it
+      description: The exact commands, from a fresh database if possible.
+      placeholder: |
+        vigil token create --name browser --db /tmp/t.db
+        vigil serve --db /tmp/t.db
+        curl -s -X POST http://127.0.0.1:8099/api/v1/ingest -H "Authorization: Bearer …" -d '…'
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: What you expected, and what happened
+      description: Both, with the actual output pasted rather than described.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Output of `vigil version`
+      placeholder: vigil 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: umgebung
+    attributes:
+      label: OS and architecture
+      placeholder: Ubuntu 24.04, amd64
+    validations:
+      required: true
+
+  - type: textarea
+    id: healthz
+    attributes:
+      label: Output of `curl -s localhost:8099/healthz`
+      description: Optional, and usually the fastest way to rule half the causes out.
+      render: json

@@ -9,8 +9,8 @@
 # ── WAS HIER HINEIN GEHOERT ────────────────────────────────────────────────
 #
 # Jeder Schritt nennt seinen Pruefer beim Dateinamen, damit
-# `pruefer-verdrahtet` ihn findet. Ein Umweg ueber ein Paketskript geht auch,
-# aber dann muss dieses Paketskript hier namentlich aufgerufen werden.
+# `pruefer-verdrahtet` ihn findet. Jeder Schritt wird einzeln benannt, nicht in
+# einem Sammelschritt versteckt: ein rotes Feld soll sagen, WAS rot ist.
 #
 # Was hier NICHT hineingehoert: eine Aufzaehlung der Gates in Prosa. Die
 # verbindliche Liste ist diese Datei selbst, plus das Ruleset des Repos
@@ -24,6 +24,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   pruefen:
     runs-on: ubuntu-latest
@@ -34,6 +37,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
       # Zuerst der Pruefer ueber die Pruefer. Scheitert er, sagen alle
       # folgenden Schritte weniger aus, als sie zu sagen scheinen.
       - name: Jeder Pruefer wird auch aufgerufen
@@ -42,12 +56,49 @@ jobs:
       - name: Test des Pruefers selbst
         run: python3 scripts/pruefer-verdrahtet.test.py
 
+      - name: Tests der projekteigenen Pruefer
+        run: python3 scripts/pruefer.test.py
+
       # ── AB HIER DAS PROJEKT ─────────────────────────────────────────────
-      # Die eigentlichen Pruefungen. Jede einzeln benannt, nicht in einem
-      # Sammelschritt versteckt: ein rotes Feld soll sagen, WAS rot ist.
-      #
-      # - name: Typen
-      #   run: <...>
-      #
-      # - name: Tests
-      #   run: <...>
+
+      - name: Erweiterung sammelt nicht im Hintergrund
+        run: python3 scripts/pruefe-keine-hintergrundabfrage.py
+
+      - name: Jeder Befehl in der Doku existiert
+        run: python3 scripts/pruefe-doku-befehle.py
+
+      - name: Go ist formatiert
+        run: |
+          ungeformt="$(gofmt -l ./cmd ./internal)"
+          if [ -n "$ungeformt" ]; then
+            echo "Nicht mit gofmt formatiert:"
+            echo "$ungeformt"
+            exit 1
+          fi
+          echo "gofmt: alle Dateien unter ./cmd und ./internal sind formatiert."
+
+      - name: go vet
+        run: go vet ./...
+
+      # -race, weil der Server nebenlaeufig ist und ein Wettlauf sonst erst
+      # beim Nutzer auffaellt.
+      - name: Go-Tests
+        run: go test -race ./...
+
+      - name: Abhaengigkeiten der Erweiterung
+        run: npm ci
+        working-directory: extension
+
+      - name: Typen der Erweiterung
+        run: npm run typecheck
+        working-directory: extension
+
+      - name: Tests der Erweiterung
+        run: npm test
+        working-directory: extension
+
+      # Das Uebersetzen gehoert dazu: typecheck laeuft mit --noEmit und wuerde
+      # einen Fehler beim Schreiben der Dateien nicht bemerken.
+      - name: Erweiterung uebersetzen
+        run: npm run build
+        working-directory: extension

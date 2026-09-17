@@ -1,0 +1,33 @@
+name: Feature request
+description: Something vigil should do and does not
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two things are out of scope by decision, not by omission: sending
+        messages on the user's behalf, and requesting pages from LinkedIn.
+        The reasoning is in `docs/entscheidungen/`. Arguing against those
+        documents is welcome; a request that assumes they do not exist is not.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you were trying to do when you needed this. Not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: heute
+    attributes:
+      label: What you do today instead
+      description: Including "nothing, I gave up", which is useful information.
+    validations:
+      required: true
+
+  - type: textarea
+    id: vorschlag
+    attributes:
+      label: What you would build
+      description: Optional. If you have an idea of the shape, describe it.
