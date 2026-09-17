@@ -5,6 +5,19 @@ permissive licence that requires its copyright notice and licence text to
 accompany a binary distribution, so both are reproduced here in full, and this
 file ships inside every release archive.
 
+The list is the union across every release target:
+
+- `darwin/amd64`
+- `darwin/arm64`
+- `linux/amd64`
+- `linux/arm64`
+- `windows/amd64`
+
+Build constraints mean the set differs per platform: `go-isatty` and
+`go-strftime` are linked on darwin and windows but not on linux. Every archive
+carries this same file, so a linux archive lists two modules its binary does
+not contain. Too much licence text is not a violation; too little is.
+
 This file is generated. Run `python3 scripts/pruefe-lizenzhinweise.py
 --schreiben` after changing a dependency; CI fails if it is out of date.
 

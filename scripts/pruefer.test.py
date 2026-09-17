@@ -17,6 +17,7 @@ Aufruf:  python3 scripts/pruefer.test.py
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -340,6 +341,32 @@ class Lizenzhinweise(unittest.TestCase):
             self.assertIn("modernc.org/sqlite", inhalt)
             self.assertIn("Permission is hereby granted", inhalt)
             self.assertEqual(self.laufe(wurzel).returncode, 0)
+
+    def test_die_liste_ist_die_vereinigung_ueber_alle_bauziele(self):
+        # Am 17.09.2026 rot geworden: auf macOS meldet `go list` zehn Module,
+        # auf dem Linux-Laeufer acht. go-isatty und go-strftime stehen hinter
+        # Build-Bedingungen. Eine auf einem Rechner erzeugte Datei war damit
+        # auf dem anderen falsch, und im Linux-Archiv haetten zwei Lizenztexte
+        # gefehlt, die das darwin-Archiv braucht.
+        inhalt = (HIER.parent / "THIRD-PARTY-NOTICES.md").read_text(encoding="utf-8")
+        for nur_auf_darwin_und_windows in ("github.com/mattn/go-isatty",
+                                           "github.com/ncruces/go-strftime"):
+            self.assertIn(nur_auf_darwin_und_windows, inhalt,
+                          "die Liste ist die des Laufrechners, nicht die Vereinigung")
+
+    def test_die_bauziele_stammen_aus_dem_workflow(self):
+        # Zwei Listen laufen auseinander. Der Pruefer liest die Matrix aus dem
+        # Veroeffentlichungs-Workflow; dieser Test haelt fest, dass die
+        # erzeugte Datei genau diese Ziele nennt.
+        workflow = (HIER.parent / ".github" / "workflows"
+                    / "veroeffentlichen.yml").read_text(encoding="utf-8")
+        aus_workflow = set(re.findall(
+            r"\{\s*goos:\s*([a-z0-9]+)\s*,\s*goarch:\s*([a-z0-9]+)\s*\}", workflow))
+        self.assertGreaterEqual(len(aus_workflow), 2, "keine Matrix im Workflow gefunden")
+
+        inhalt = (HIER.parent / "THIRD-PARTY-NOTICES.md").read_text(encoding="utf-8")
+        aus_datei = set(re.findall(r"^- `([a-z0-9]+)/([a-z0-9]+)`$", inhalt, re.MULTILINE))
+        self.assertEqual(aus_datei, aus_workflow)
 
     def test_jedes_modul_bringt_seinen_lizenztext_mit(self):
         # Ein Eintrag ohne Text erfuellt die Auflage nicht. "see the text
