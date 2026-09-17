@@ -82,6 +82,12 @@ pull request. See [docs/entscheidungen/0002-kein-scraping.md](docs/entscheidunge
 does not have. It gets the command list from `vigil help` at run time, not from
 a second list in the script.
 
+`scripts/pruefe-release-abgesichert.py` fails if any job in the release workflow
+can reach a build or a publish without depending on these checks. The checks
+workflow does not run on tags, so the release workflow calls it and waits for it.
+Running the checks on tags as well would not have been enough: they would run
+beside the release and stop nothing.
+
 `scripts/pruefe-lizenzhinweise.py` fails if `THIRD-PARTY-NOTICES.md` does not
 match the modules actually linked into the binary. MIT and BSD-3-Clause both
 require the copyright notice and licence text to accompany a binary

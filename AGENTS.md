@@ -130,6 +130,26 @@ Die Unterschrift muss die Adresse des **Autors** des Commits nennen. Sonst
 unterschreibt A für die Arbeit von B, und die Erklärung ist keine Erklärung
 über die eigene Arbeit mehr.
 
+### Ein Tag veröffentlicht nichts Ungeprüftes
+
+`Pruefungen` läuft bei Push auf main und bei jedem Beitrag, **nicht** bei einem
+Tag. Am 17.09.2026 war v0.1.0 nur deshalb gedeckt, weil der getaggte Commit
+vorher über main gelaufen war. Ein Tag auf einen Commit, der das nicht war,
+wäre ohne gofmt, ohne die Tests der Erweiterung und ohne den Lizenz-Prüfer
+ausgeliefert worden, und der Release-Lauf wäre grün gewesen, weil er nur
+`go test` kannte.
+
+Die Prüfungen zusätzlich auf Tags laufen zu lassen behebt das nicht: sie liefen
+dann **neben** dem Release und hielten nichts auf. `veroeffentlichen.yml` ruft
+deshalb `pruefungen.yml` über `workflow_call` auf, und `bauen` hängt per `needs`
+an dessen Ergebnis. `pruefe-release-abgesichert.py` hält fest, dass kein Job an
+diesem Tor vorbeikommt.
+
+Der Prüfer hat sich beim ersten Lauf selbst erwischt: `lstrip("./")` entfernt
+jedes führende `.` und `/`, macht aus `./.github/workflows/…` also
+`github/workflows/…` und meldete eine vorhandene Datei als fehlend. Jetzt
+`removeprefix`, mit einem Test darauf.
+
 ### Die Erweiterung darf keinen Sonderfall bekommen
 
 Kein `host_permissions`, kein Service Worker, kein `content_scripts` mit
@@ -167,6 +187,7 @@ Die Prüfer dieses Projekts:
 | `pruefe-doku-befehle.py` | jeder `vigil …`-Aufruf in einem `bash`-Block existiert laut `vigil help` | ob Schalter, Ausgabe oder Beschreibung stimmen |
 | `pruefe-lizenzhinweise.py` | `THIRD-PARTY-NOTICES.md` deckt genau die Module ab, die `go list -deps ./cmd/vigil` meldet | ob die Lizenzen miteinander verträglich sind. Es sammelt, es beurteilt nicht |
 | `pruefe-herkunftszeile.py` | jeder Commit eines Beitrags trägt `Signed-off-by` mit der Adresse seines Autors | ob die Zusicherung stimmt. Eine Erklärung ist keine Prüfung |
+| `pruefe-release-abgesichert.py` | jeder Job in `veroeffentlichen.yml` erreicht über `needs` den Job, der `pruefungen.yml` aufruft | ob die Prüfungen selbst etwas taugen. Dafür gibt es `pruefer-verdrahtet.py` |
 
 `scripts/pruefer.test.py` testet die beiden projekteigenen Prüfer. Beide
 Testklassen bauen Bäume, in denen es etwas zu finden gibt, **und** laufen

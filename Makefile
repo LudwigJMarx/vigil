@@ -36,6 +36,7 @@ check:
 	$(PYTHON) scripts/pruefe-keine-hintergrundabfrage.py
 	$(PYTHON) scripts/pruefe-doku-befehle.py
 	$(PYTHON) scripts/pruefe-lizenzhinweise.py
+	$(PYTHON) scripts/pruefe-release-abgesichert.py
 	gofmt -l ./cmd ./internal | (! grep .) || (echo "run gofmt -w ./cmd ./internal"; exit 1)
 	$(GO) vet ./...
 	$(GO) test -race ./...
@@ -45,7 +46,8 @@ run: build
 	./vigil serve
 
 lizenzen:
-	$(PYTHON) scripts/pruefe-lizenzhinweise.py --schreiben
+	$(PYTHON) scripts/pruefe-lizenzhinweise.py
+	$(PYTHON) scripts/pruefe-release-abgesichert.py --schreiben
 
 clean:
 	rm -rf vigil extension/dist

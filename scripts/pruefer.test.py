@@ -28,6 +28,7 @@ HIER = Path(__file__).resolve().parent
 HINTERGRUND = HIER / "pruefe-keine-hintergrundabfrage.py"
 HERKUNFT = HIER / "pruefe-herkunftszeile.py"
 LIZENZEN = HIER / "pruefe-lizenzhinweise.py"
+ABGESICHERT = HIER / "pruefe-release-abgesichert.py"
 
 SAUBERES_MANIFEST = {
     "manifest_version": 3,
@@ -378,6 +379,135 @@ class Lizenzhinweise(unittest.TestCase):
             name = abschnitt.splitlines()[0]
             self.assertIn("```", abschnitt, f"{name} hat keinen Lizenztext")
             self.assertRegex(abschnitt, r"Copyright", f"{name} nennt keinen Urheber")
+
+
+PRUEFUNGEN_MIT_AUFRUF = """name: Pruefungen
+on:
+  push:
+    branches: [main]
+  workflow_call:
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+"""
+
+RELEASE_MIT_TOR = """name: Veroeffentlichen
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  pruefen:
+    uses: ./.github/workflows/pruefungen.yml
+
+  bauen:
+    needs: pruefen
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bauen
+
+  veroeffentlichen:
+    needs: bauen
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo veroeffentlichen
+"""
+
+
+class Releaseabgesichert(unittest.TestCase):
+    """Der Pruefer, der das Tor vor dem Release haelt."""
+
+    def baue(self, release: str, pruefungen: str | None = PRUEFUNGEN_MIT_AUFRUF) -> Path:
+        wurzel = Path(tempfile.mkdtemp())
+        workflows = wurzel / ".github" / "workflows"
+        workflows.mkdir(parents=True)
+        (workflows / "veroeffentlichen.yml").write_text(release, encoding="utf-8")
+        if pruefungen is not None:
+            (workflows / "pruefungen.yml").write_text(pruefungen, encoding="utf-8")
+        return wurzel
+
+    def laufe(self, wurzel: Path) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(ABGESICHERT), "--wurzel", str(wurzel)],
+            capture_output=True, text=True,
+        )
+
+    def test_der_echte_workflow_haengt_an_den_pruefungen(self):
+        # Der wichtigste Fall. Wird er rot, kann ein Tag ungeprueft
+        # veroeffentlichen, und der Release-Lauf waere trotzdem gruen.
+        lauf = self.laufe(HIER.parent)
+        self.assertEqual(lauf.returncode, 0, lauf.stdout + lauf.stderr)
+        self.assertIn("Tor(e): pruefen", lauf.stdout)
+
+    def test_ein_punktverzeichnis_im_aufruf_wird_richtig_aufgeloest(self):
+        # lstrip("./") entfernt JEDES fuehrende "." und "/", macht aus
+        # "./.github/..." also "github/..." und meldet eine vorhandene Datei
+        # als fehlend. Beim ersten Lauf genau so passiert.
+        lauf = self.laufe(self.baue(RELEASE_MIT_TOR))
+        self.assertEqual(lauf.returncode, 0, lauf.stdout)
+        self.assertNotIn("gibt es nicht", lauf.stdout)
+
+    def test_ein_job_ohne_needs_faellt_auf(self):
+        ohne = RELEASE_MIT_TOR.replace("  bauen:\n    needs: pruefen\n", "  bauen:\n")
+        lauf = self.laufe(self.baue(ohne))
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("'bauen'", lauf.stdout)
+
+    def test_ein_release_ganz_ohne_tor_faellt_auf(self):
+        ohne_tor = """name: Veroeffentlichen
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bauen
+
+  veroeffentlichen:
+    needs: bauen
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+"""
+        lauf = self.laufe(self.baue(ohne_tor))
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("Kein Job ruft einen lokalen Workflow auf", lauf.stdout)
+
+    def test_ein_aufruf_auf_eine_fehlende_datei_faellt_auf(self):
+        lauf = self.laufe(self.baue(RELEASE_MIT_TOR, pruefungen=None))
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("gibt es nicht", lauf.stdout)
+
+    def test_ein_aufruf_ohne_workflow_call_faellt_auf(self):
+        # Der Aufruf scheitert sonst erst zur Laufzeit, und zwar in dem Lauf,
+        # der veroeffentlichen sollte.
+        ohne = PRUEFUNGEN_MIT_AUFRUF.replace("  workflow_call:\n", "")
+        lauf = self.laufe(self.baue(RELEASE_MIT_TOR, pruefungen=ohne))
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("workflow_call", lauf.stdout)
+
+    def test_needs_als_liste_zaehlt_auch(self):
+        liste = RELEASE_MIT_TOR.replace("needs: bauen", "needs: [bauen]")
+        lauf = self.laufe(self.baue(liste))
+        self.assertEqual(lauf.returncode, 0, lauf.stdout)
+
+    def test_ein_workflow_mit_einem_job_bricht_laut_ab(self):
+        # Wahrscheinlicher als ein echter Ein-Job-Release ist, dass die Muster
+        # danebengreifen. Dann darf nicht "0 Befunde" herauskommen.
+        einer = """name: Veroeffentlichen
+on:
+  workflow_dispatch:
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+"""
+        lauf = self.laufe(self.baue(einer))
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("Job(s) erkannt", lauf.stderr)
 
 
 if __name__ == "__main__":

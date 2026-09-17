@@ -23,6 +23,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Damit der Veroeffentlichungs-Workflow diese Pruefungen nicht abschreibt,
+  # sondern aufruft und auf ihr Ergebnis wartet. Zwei Listen von Schritten
+  # laufen auseinander, und die Fassung im Release waere die, die niemand
+  # ansieht, bis ein Tag etwas Ungeprueftes ausliefert.
+  workflow_call:
 
 permissions:
   contents: read
@@ -82,6 +87,9 @@ jobs:
 
       - name: Jeder Befehl in der Doku existiert
         run: python3 scripts/pruefe-doku-befehle.py
+
+      - name: Der Release haengt an diesen Pruefungen
+        run: python3 scripts/pruefe-release-abgesichert.py
 
       - name: Go ist formatiert
         run: |

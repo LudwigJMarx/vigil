@@ -7,6 +7,18 @@
 #
 # Der Versionsstempel kommt aus dem Tag. Ein Binary, das "dev" meldet, waehrend
 # es aus einem Tag gebaut wurde, laesst jeden Fehlerbericht ins Leere laufen.
+#
+# ── WARUM DER ERSTE JOB DIE PRUEFUNGEN AUFRUFT ─────────────────────────────
+#
+# `Pruefungen` laeuft bei Push auf main und bei jedem Beitrag, aber nicht bei
+# einem Tag. Am 17.09.2026 war v0.1.0 nur deshalb gedeckt, weil der getaggte
+# Commit vorher ueber main gelaufen war. Ein Tag auf einen Commit, der das
+# nicht war, waere ohne gofmt, ohne die Tests der Erweiterung und ohne den
+# Lizenz-Pruefer veroeffentlicht worden.
+#
+# Die Pruefungen zusaetzlich auf Tags laufen zu lassen reicht dafuer nicht: sie
+# liefen dann NEBEN dem Release und hielten nichts auf. Deshalb ruft `bauen`
+# sie ueber `workflow_call` auf und haengt mit `needs` an ihrem Ergebnis.
 
 name: Veroeffentlichen
 
@@ -19,7 +31,13 @@ permissions:
   contents: write
 
 jobs:
+  # Derselbe Workflow, den main und jeder Beitrag durchlaufen. Aufgerufen,
+  # nicht abgeschrieben.
+  pruefen:
+    uses: ./.github/workflows/pruefungen.yml
+
   bauen:
+    needs: pruefen
     runs-on: ubuntu-latest
     strategy:
       matrix:
