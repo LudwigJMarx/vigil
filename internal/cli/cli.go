@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 
 	"github.com/LudwigJMarx/vigil/internal/store"
@@ -32,10 +33,42 @@ Common flags:
 Run "vigil <command> --help" for the flags of one command.
 `
 
-// Version is stamped at build time with -ldflags "-X ...cli.Version=...".
-// "dev" is what an unstamped build reports, and it says so rather than
-// inventing a number that looks like a release.
-var Version = "dev"
+// Version is what the binary reports about itself. The release workflow stamps
+// it with -ldflags "-X ...cli.Version=..."; everything else falls back to
+// versionFrom below.
+var Version = versionFrom(stamped, buildInfoVersion())
+
+// stamped is what -ldflags writes into. It stays empty in any build that does
+// not pass the flag, which is every build a user makes themselves.
+var stamped string
+
+// versionFrom decides what to report, and is a pure function so the decision
+// has a test that does not need three different kinds of build.
+//
+// The order matters. A release binary carries the stamp and reports it. A
+// binary from `go install module@v0.1.0` carries no stamp, but the module
+// system knows the version, so it reports that: until 17.09.2026 it said
+// "dev", which meant /healthz answered "dev" on an installed release and every
+// bug report from such an instance named no version at all. A build from a
+// working tree knows neither and says "dev", which is the honest answer rather
+// than a number that looks like a release.
+func versionFrom(stamp, ausDemModul string) string {
+	if stamp != "" {
+		return stamp
+	}
+	if ausDemModul != "" && ausDemModul != "(devel)" {
+		return strings.TrimPrefix(ausDemModul, "v")
+	}
+	return "dev"
+}
+
+func buildInfoVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	return info.Main.Version
+}
 
 // Run executes one command. It returns the process exit code.
 func Run(args []string, stdout, stderr io.Writer) int {

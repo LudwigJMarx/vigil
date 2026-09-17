@@ -132,3 +132,37 @@ func TestVersionNamesTheDatabaseItWouldUse(t *testing.T) {
 		t.Fatalf("stdout = %q, want the database path", stdout)
 	}
 }
+
+func TestVersionFromPrefersTheStampThenTheModuleThenSaysDev(t *testing.T) {
+	// Until 17.09.2026 a binary from `go install module@v0.1.0` reported "dev",
+	// because only the release workflow passes -ldflags. /healthz answered
+	// "dev" on an installed release, and every bug report from such an instance
+	// named no version at all.
+	cases := []struct {
+		name, stamp, modul, want string
+	}{
+		{"release binary", "0.1.0", "v0.1.0", "0.1.0"},
+		{"go install of a tagged version", "", "v0.1.0", "0.1.0"},
+		{"go install keeps no leading v", "", "v1.2.3-rc1", "1.2.3-rc1"},
+		{"build from a working tree", "", "(devel)", "dev"},
+		{"no build info at all", "", "", "dev"},
+		{"the stamp wins over the module", "0.2.0-rc", "v0.1.0", "0.2.0-rc"},
+	}
+	for _, c := range cases {
+		if got := versionFrom(c.stamp, c.modul); got != c.want {
+			t.Errorf("%s: versionFrom(%q, %q) = %q, want %q", c.name, c.stamp, c.modul, got, c.want)
+		}
+	}
+}
+
+func TestAnUnstampedBuildReportsDevRatherThanSomethingReleaseShaped(t *testing.T) {
+	// The wiring: this test binary carries no stamp, so Version has been
+	// through versionFrom for real. A test that only called versionFrom would
+	// stay green if the variable stopped using it.
+	if Version == "" {
+		t.Fatal("Version is empty")
+	}
+	if stamped == "" && Version != "dev" && !strings.Contains(Version, ".") {
+		t.Fatalf("Version = %q, which is neither a stamp, a module version nor dev", Version)
+	}
+}

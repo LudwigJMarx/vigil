@@ -412,7 +412,9 @@ jobs:
     needs: bauen
     runs-on: ubuntu-latest
     steps:
-      - run: echo veroeffentlichen
+      - uses: softprops/action-gh-release@v3
+        with:
+          overwrite_files: false
 """
 
 
@@ -470,7 +472,9 @@ jobs:
     needs: bauen
     runs-on: ubuntu-latest
     steps:
-      - run: echo
+      - uses: softprops/action-gh-release@v3
+        with:
+          overwrite_files: false
 """
         lauf = self.laufe(self.baue(ohne_tor))
         self.assertEqual(lauf.returncode, 1, lauf.stdout)
@@ -494,6 +498,23 @@ jobs:
         lauf = self.laufe(self.baue(liste))
         self.assertEqual(lauf.returncode, 0, lauf.stdout)
 
+    def test_ein_release_das_dateien_ersetzen_darf_faellt_auf(self):
+        # Am 17.09.2026 hat ein Force-Push des Tags den Workflow erneut
+        # gestartet und alle fuenf Archive still ersetzt. Gleiche Quelle,
+        # andere Pruefsummen, weil Go die Commit-SHA ins Binary stempelt.
+        ersetzend = RELEASE_MIT_TOR.replace("          overwrite_files: false\n", "")
+        lauf = self.laufe(self.baue(ersetzend))
+        self.assertEqual(lauf.returncode, 1, lauf.stdout)
+        self.assertIn("overwrite_files", lauf.stdout)
+
+    def test_ohne_release_schritt_bricht_es_laut_ab(self):
+        ohne = RELEASE_MIT_TOR.replace(
+            "      - uses: softprops/action-gh-release@v3\n        with:\n"
+            "          overwrite_files: false\n", "      - run: echo\n")
+        lauf = self.laufe(self.baue(ohne))
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("kein Release-Schritt", lauf.stderr)
+
     def test_ein_workflow_mit_einem_job_bricht_laut_ab(self):
         # Wahrscheinlicher als ein echter Ein-Job-Release ist, dass die Muster
         # danebengreifen. Dann darf nicht "0 Befunde" herauskommen.
@@ -504,7 +525,9 @@ jobs:
   bauen:
     runs-on: ubuntu-latest
     steps:
-      - run: echo
+      - uses: softprops/action-gh-release@v3
+        with:
+          overwrite_files: false
 """
         lauf = self.laufe(self.baue(einer))
         self.assertEqual(lauf.returncode, 1)

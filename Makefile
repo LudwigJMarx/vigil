@@ -6,7 +6,7 @@ GO      ?= go
 NPM     ?= npm
 PYTHON  ?= python3
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS := -s -w -X github.com/LudwigJMarx/vigil/internal/cli.Version=$(VERSION)
+LDFLAGS := -s -w -X github.com/LudwigJMarx/vigil/internal/cli.stamped=$(VERSION)
 
 .PHONY: help build test check run extension lizenzen clean
 

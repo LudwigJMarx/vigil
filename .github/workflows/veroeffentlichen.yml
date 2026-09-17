@@ -78,7 +78,7 @@ jobs:
           binary="dist/${name}/vigil"
           [ "$GOOS" = "windows" ] && binary="${binary}.exe"
           go build -trimpath \
-            -ldflags "-s -w -X github.com/LudwigJMarx/vigil/internal/cli.Version=${version}" \
+            -ldflags "-s -w -X github.com/LudwigJMarx/vigil/internal/cli.stamped=${version}" \
             -o "$binary" ./cmd/vigil
           # THIRD-PARTY-NOTICES.md muss mit: MIT und BSD-3-Clause verlangen
           # beide, dass Urheberrechtsvermerk und Lizenztext der Weitergabe in
@@ -134,3 +134,12 @@ jobs:
           generate_release_notes: true
           # Ohne das ist ein Release ohne angehaengte Datei ein Erfolg.
           fail_on_unmatched_files: true
+          # Ein veroeffentlichtes Release ist unveraenderlich. Am 17.09.2026
+          # hat ein Force-Push des Tags v0.1.0 diesen Workflow erneut gestartet
+          # und alle fuenf Archive still ersetzt. Der Quelltext war derselbe,
+          # die Pruefsummen waren es nicht: Go stempelt vcs.revision ins Binary,
+          # und die SHA hatte sich durch das Umschreiben des Verlaufs geaendert.
+          # Wer die alte Pruefsumme notiert hatte, sieht seitdem eine
+          # Abweichung, und eine Abweichung sieht aus wie Manipulation.
+          # Mit false scheitert der Lauf laut, statt still zu ersetzen.
+          overwrite_files: false

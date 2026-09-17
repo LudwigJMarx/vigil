@@ -147,6 +147,41 @@ Die Unterschrift muss die Adresse des **Autors** des Commits nennen. Sonst
 unterschreibt A für die Arbeit von B, und die Erklärung ist keine Erklärung
 über die eigene Arbeit mehr.
 
+### Ein veröffentlichtes Release ist unveränderlich
+
+Am 17.09.2026 hat ein Force-Push des Tags `v0.1.0` den Release-Workflow erneut
+gestartet und alle fünf Archive still ersetzt. Der Quelltext war derselbe, die
+Prüfsummen waren es nicht: Go stempelt `vcs.revision` ins Binary, und die SHA
+hatte sich durch das Umschreiben des Verlaufs geändert. `vcs.time` und alles
+andere blieben gleich, nachgewiesen mit `go version -m` an beiden Dateien.
+
+Wer die alte Prüfsumme notiert hatte, sieht seitdem eine Abweichung, und eine
+Abweichung an einer veröffentlichten Datei sieht aus wie Manipulation.
+
+`overwrite_files: false` lässt den Lauf laut scheitern, statt still zu
+ersetzen. `pruefe-release-abgesichert.py` hält das fest und bricht ab, wenn es
+den Release-Schritt gar nicht mehr findet.
+
+Daraus folgt eine Regel für den Umgang: ein Tag wird nicht verschoben. Wer
+etwas ändern muss, vergibt eine neue Version.
+
+### Ein Binary ohne Stempel meldet seine Modulversion, nicht „dev"
+
+`go install github.com/LudwigJMarx/vigil/cmd/vigil@latest` läuft ohne die
+`-ldflags` des Release-Workflows. Bis zum 17.09.2026 meldete ein so
+installiertes Release deshalb `vigil dev`, und `/healthz` antwortete `"dev"`.
+Genau der Fall, vor dem der Kommentar im Release-Workflow warnt, nur von der
+anderen Seite: jeder Fehlerbericht aus einer solchen Instanz nennt keine
+Version.
+
+`versionFrom` entscheidet in dieser Reihenfolge: Stempel, dann
+`debug.ReadBuildInfo().Main.Version`, dann `dev`. Der Stempel schreibt in
+`internal/cli.stamped`, nicht mehr in `Version`, damit die Entscheidung eine
+reine Funktion bleibt und einen Test hat, der nicht drei Bauarten braucht.
+
+Nachgewiesen ist bisher nur die Funktion und der ungestempelte Bau. Dass
+`go install …@vX` wirklich die Version meldet, zeigt erst das nächste Tag.
+
 ### `.gitignore` wirkt nicht rückwirkend
 
 Am 17.09.2026 lag das gebaute 10-MB-Binary `vigil` seit dem Wurzel-Commit im

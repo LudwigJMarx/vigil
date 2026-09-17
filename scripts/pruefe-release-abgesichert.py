@@ -26,6 +26,13 @@ In `.github/workflows/veroeffentlichen.yml`:
   3. Jeder andere Job erreicht das Tor ueber `needs`, direkt oder ueber
      mehrere Stufen. Ein Job ohne diesen Weg baut oder veroeffentlicht,
      waehrend die Pruefungen noch laufen oder schon rot sind.
+  4. Der Release-Schritt setzt `overwrite_files: false`. Ein veroeffentlichtes
+     Release ist unveraenderlich. Am 17.09.2026 hat ein Force-Push des Tags
+     v0.1.0 diesen Workflow erneut gestartet und alle fuenf Archive still
+     ersetzt: derselbe Quelltext, andere Pruefsummen, weil Go die Commit-SHA
+     ins Binary stempelt und der Verlauf umgeschrieben worden war. Wer die
+     alte Pruefsumme notiert hatte, sieht seitdem eine Abweichung, und das
+     sieht aus wie Manipulation.
 
 ── WAS ES AUSDRUECKLICH NICHT SIEHT ────────────────────────────────────────
 
@@ -144,6 +151,20 @@ def main() -> int:
                 f"Job {name!r} ruft {aufgerufen} auf, dort fehlt aber der Ausloeser "
                 "`workflow_call:`. Der Aufruf scheitert erst zur Laufzeit."
             )
+
+    # Der Release-Schritt darf veroeffentlichte Dateien nicht ersetzen.
+    if "action-gh-release" in text:
+        if not re.search(r"^\s*overwrite_files:\s*false\s*$", text, re.MULTILINE):
+            befunde.append(
+                "Der Release-Schritt setzt `overwrite_files: false` nicht. Ein erneuter "
+                "Lauf auf demselben Tag ersetzt die veroeffentlichten Dateien still."
+            )
+    else:
+        raise SystemExit(
+            f"release-abgesichert: in {RELEASE} kommt kein Release-Schritt "
+            "(action-gh-release) mehr vor. Entweder wird anders veroeffentlicht, "
+            "oder die Muster passen nicht mehr."
+        )
 
     kanten = {name: braucht(block) for name, block in alle.items()}
     ungedeckt: list[str] = []
