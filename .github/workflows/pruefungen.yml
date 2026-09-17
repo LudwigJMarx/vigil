@@ -94,6 +94,12 @@ jobs:
       - name: Kein Bauartefakt im Repo
         run: python3 scripts/pruefe-keine-bauartefakte.py
 
+      # Der Laeufer bringt systemd mit. Hier und nur hier wird die Unit aus
+      # docs/deploy.md wirklich geprueft; auf einem macOS-Rechner sagt derselbe
+      # Pruefer, dass er nichts pruefen konnte.
+      - name: Die systemd-Unit aus der Doku ist gueltig
+        run: python3 scripts/pruefe-betriebsanleitung.py
+
       - name: Go ist formatiert
         run: |
           ungeformt="$(gofmt -l ./cmd ./internal)"

@@ -147,6 +147,24 @@ Die Unterschrift muss die Adresse des **Autors** des Commits nennen. Sonst
 unterschreibt A für die Arbeit von B, und die Erklärung ist keine Erklärung
 über die eigene Arbeit mehr.
 
+### Was in der Doku steht, ist gelaufen oder als ungelaufen benannt
+
+`docs/deploy.md` trug eine systemd-Unit, eine Caddy- und eine nginx-Konfiguration
+und einen Sicherungsbefehl. Keines davon war je ausgeführt worden, während die
+Hausregeln behaupten, jedes Beispiel sei gelaufen. Am 17.09.2026 nachgeholt:
+
+- Der Sicherungsbefehl läuft jetzt belegt gegen eine laufende Instanz, samt
+  Gegenprobe. Das blosse Kopieren der `.db` im WAL-Modus ergibt eine **leere**
+  Datenbank, die ohne Beschwerde aufgeht: 0 statt 3 Signale. Die Zahlen stehen
+  in der Doku.
+- Die systemd-Unit prüft `pruefe-betriebsanleitung.py` in der CI.
+- Caddy und nginx sind in `docs/deploy.md` ausdrücklich als **nicht ausgeführt**
+  gekennzeichnet, mit Begründung. Zwei Webserver in der CI zu installieren, um
+  vier Zeilen zu prüfen, steht nicht im Verhältnis.
+
+Der Punkt ist nicht, alles zu prüfen. Der Punkt ist, dass der Leser weiss,
+welcher Block geprüft ist und welcher nicht.
+
 ### Ein veröffentlichtes Release ist unveränderlich
 
 Am 17.09.2026 hat ein Force-Push des Tags `v0.1.0` den Release-Workflow erneut
@@ -260,6 +278,7 @@ Die Prüfer dieses Projekts:
 | `pruefe-herkunftszeile.py` | jeder Commit eines Beitrags trägt `Signed-off-by` mit der Adresse seines Autors | ob die Zusicherung stimmt. Eine Erklärung ist keine Prüfung |
 | `pruefe-release-abgesichert.py` | jeder Job in `veroeffentlichen.yml` erreicht über `needs` den Job, der `pruefungen.yml` aufruft | ob die Prüfungen selbst etwas taugen. Dafür gibt es `pruefer-verdrahtet.py` |
 | `pruefe-keine-bauartefakte.py` | keine Datei ist verfolgt und zugleich von `.gitignore` erfasst | ein Bauartefakt, das keine Regel erfasst. Er hält den Widerspruch fest, nicht jede Unordnung |
+| `pruefe-betriebsanleitung.py` | die systemd-Unit aus `docs/deploy.md` mit `systemd-analyze verify` | die Caddy- und nginx-Blöcke. Auf einem Rechner ohne systemd sagt er, dass er nichts geprüft hat, statt still grün zu melden |
 
 `scripts/pruefer.test.py` testet die beiden projekteigenen Prüfer. Beide
 Testklassen bauen Bäume, in denen es etwas zu finden gibt, **und** laufen

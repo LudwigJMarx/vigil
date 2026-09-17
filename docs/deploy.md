@@ -5,6 +5,21 @@ no database server to run and no migration step to remember: the binary brings
 its schema up to date when it opens the file, and refuses to open one written by
 a newer version rather than guessing.
 
+## What on this page has been executed
+
+The house rule for this project is that a code example in the documentation has
+been run against the real tree. Not everything here can be, from a macOS laptop
+with no container runtime, so the state of each block is stated rather than
+implied.
+
+| Block | State |
+|---|---|
+| The cross-compiled targets | Built, and the linux binary confirmed statically linked |
+| `.backup` and the naive-copy counter-example | Run against a live instance, numbers above |
+| The systemd unit | Checked in CI with `systemd-analyze verify` on every push |
+| The Caddy and nginx snippets | **Not executed.** Installing two web servers in CI to lint four lines is out of proportion to what it would catch. Treat them as a starting point, not as a tested configuration |
+| `useradd` / `install` | **Not executed.** They are ordinary Linux commands, and the page has no Linux host to run them on |
+
 ## Verified targets
 
 Built with `CGO_ENABLED=0`, so the binary is static and the SQLite driver is
@@ -99,8 +114,17 @@ sudo -u vigil sqlite3 /var/lib/vigil/vigil.db ".backup '/var/backups/vigil-$(dat
 ```
 
 vigil runs in WAL mode, so copying the `.db` file alone while the server is
-running can miss committed data sitting in `-wal`. Use `.backup`, or stop the
-service first and copy all three files.
+running misses committed data sitting in `-wal`. That is not a caution, it is
+measured. Against a running instance holding three accounts and three signals:
+
+```
+sqlite3 vigil.db ".backup 'kopie.db'"   ->  kopie.db: 3 Signale, 3 Konten
+cp vigil.db naiv.db                     ->  naiv.db:  0 Signale, 0 Konten
+```
+
+The naive copy is not a partial backup. It is an empty database that opens
+without complaint. Use `.backup`, or stop the service first and copy all three
+files.
 
 Restoring is putting the file back. There is no other state.
 

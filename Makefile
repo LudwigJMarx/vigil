@@ -38,6 +38,7 @@ check:
 	$(PYTHON) scripts/pruefe-lizenzhinweise.py
 	$(PYTHON) scripts/pruefe-release-abgesichert.py
 	$(PYTHON) scripts/pruefe-keine-bauartefakte.py
+	$(PYTHON) scripts/pruefe-betriebsanleitung.py
 	gofmt -l ./cmd ./internal | (! grep .) || (echo "run gofmt -w ./cmd ./internal"; exit 1)
 	$(GO) vet ./...
 	$(GO) test -race ./...
@@ -49,7 +50,8 @@ run: build
 lizenzen:
 	$(PYTHON) scripts/pruefe-lizenzhinweise.py
 	$(PYTHON) scripts/pruefe-release-abgesichert.py
-	$(PYTHON) scripts/pruefe-keine-bauartefakte.py --schreiben
+	$(PYTHON) scripts/pruefe-keine-bauartefakte.py
+	$(PYTHON) scripts/pruefe-betriebsanleitung.py --schreiben
 
 clean:
 	rm -rf vigil extension/dist

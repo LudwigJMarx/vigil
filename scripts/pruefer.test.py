@@ -30,6 +30,7 @@ HERKUNFT = HIER / "pruefe-herkunftszeile.py"
 LIZENZEN = HIER / "pruefe-lizenzhinweise.py"
 ABGESICHERT = HIER / "pruefe-release-abgesichert.py"
 BAUARTEFAKTE = HIER / "pruefe-keine-bauartefakte.py"
+BETRIEB = HIER / "pruefe-betriebsanleitung.py"
 
 SAUBERES_MANIFEST = {
     "manifest_version": 3,
@@ -615,6 +616,60 @@ class KeineBauartefakte(unittest.TestCase):
             lauf = self.laufe(Path(leer))
         self.assertEqual(lauf.returncode, 1)
         self.assertIn("scheiterte", lauf.stderr)
+
+
+class Betriebsanleitung(unittest.TestCase):
+    """Die systemd-Unit aus der Doku.
+
+    Auf einem Rechner ohne systemd kann der Pruefer nur lesen, nicht pruefen.
+    Die Tests hier decken beides ab: das Lesen und das laute Scheitern, wenn es
+    nichts zu lesen gibt. Die echte Pruefung mit systemd-analyze laeuft in der
+    CI auf ubuntu, und ein gruener lokaler Lauf sagt ausdruecklich, dass er
+    nichts geprueft hat.
+    """
+
+    def baue(self, deploy: str) -> Path:
+        wurzel = Path(tempfile.mkdtemp())
+        (wurzel / "docs").mkdir()
+        (wurzel / "docs" / "deploy.md").write_text(deploy, encoding="utf-8")
+        return wurzel
+
+    def laufe(self, wurzel: Path) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(BETRIEB), "--wurzel", str(wurzel)],
+            capture_output=True, text=True,
+        )
+
+    def test_die_echte_unit_wird_gefunden_und_gemeldet(self):
+        lauf = self.laufe(HIER.parent)
+        self.assertEqual(lauf.returncode, 0, lauf.stdout + lauf.stderr)
+        self.assertIn("Direktiven", lauf.stdout)
+        # Der Pruefer muss sagen, ob er geprueft ODER nur gelesen hat.
+        self.assertTrue(
+            "systemd-analyze geprueft" in lauf.stdout or "Nicht geprueft" in lauf.stdout,
+            f"die Ausgabe sagt nicht, ob geprueft wurde: {lauf.stdout}",
+        )
+
+    def test_ohne_ini_block_bricht_es_laut_ab(self):
+        lauf = self.laufe(self.baue("# Betrieb\n\nKein Block hier.\n"))
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("kein ```ini-Block", lauf.stderr)
+
+    def test_ein_anderer_block_zaehlt_nicht_als_unit(self):
+        # Ohne die Sprachangabe waere der bash-Block die "Unit".
+        lauf = self.laufe(self.baue("```bash\nsudo systemctl enable vigil\n```\n"))
+        self.assertEqual(lauf.returncode, 1)
+        self.assertIn("kein ```ini-Block", lauf.stderr)
+
+    def test_die_unit_traegt_die_abschnitte_die_systemd_braucht(self):
+        # Billig, aber es faengt den Fall ab, dass jemand den Block kuerzt und
+        # systemd-analyze auf dem Entwicklungsrechner gar nicht laeuft.
+        text = (HIER.parent / "docs" / "deploy.md").read_text(encoding="utf-8")
+        block = re.search(r"^```ini\s*$(.*?)^```\s*$", text, re.MULTILINE | re.DOTALL)
+        self.assertIsNotNone(block, "kein ini-Block in deploy.md")
+        unit = block.group(1)
+        for abschnitt in ("[Unit]", "[Service]", "[Install]", "ExecStart="):
+            self.assertIn(abschnitt, unit, f"{abschnitt} fehlt in der Unit")
 
 
 if __name__ == "__main__":

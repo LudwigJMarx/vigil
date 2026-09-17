@@ -238,6 +238,9 @@ the binding list. Among them:
   workflow can reach the publish step without going through these checks first.
 - `scripts/pruefe-keine-bauartefakte.py` fails the build if a file is tracked and
   matched by `.gitignore` at the same time. `git status` cannot show that case.
+- `scripts/pruefe-betriebsanleitung.py` runs `systemd-analyze verify` on the unit
+  file printed in [docs/deploy.md](docs/deploy.md), so that page's central
+  example is checked rather than merely plausible.
 
 [CONTRIBUTING.md](CONTRIBUTING.md) has the rest, including what a pull request
 has to show before it can be reviewed.
