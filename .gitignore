@@ -1,11 +1,21 @@
+# Gebaute Dateien
+/vigil
+/vigil.exe
+/dist/
+extension/dist/
+extension/node_modules/
+
+# Datenbanken. Eine echte Instanz gehoert nie ins Repo.
+*.db
+*.db-wal
+*.db-shm
+
+# Umgebung
 .venv/
 __pycache__/
 *.pyc
 node_modules/
-dist/
-build/
 .DS_Store
-_local/
 .env
 .env.*
 !.env.example
