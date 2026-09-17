@@ -447,3 +447,56 @@ func TestAnOversizedBatchIsRefusedRatherThanAbsorbed(t *testing.T) {
 		t.Fatalf("status %d, want 413", resp.StatusCode)
 	}
 }
+
+func TestTwoCapturesFromOneCompanyPageBothLandOnTheTimeline(t *testing.T) {
+	// The seam. The core test covers the fingerprint as a function; this one
+	// puts two captures through the ingest endpoint the way the extension does,
+	// because that is where the loss was observed on 17.09.2026: the popup said
+	// "1 already known" and the second observation was gone.
+	h := start(t)
+	kapsel := func(text string, wann time.Time) IngestRequest {
+		return IngestRequest{
+			Account: &core.Account{Name: "Acme GmbH", Profile: "https://www.linkedin.com/company/acme-gmbh/"},
+			Signals: []core.Signal{{
+				Kind: "post", Source: "linkedin",
+				URL: "https://www.linkedin.com/company/acme-gmbh/", Body: text, OccurredAt: wann,
+			}},
+		}
+	}
+
+	_, raw := h.auth("POST", "/api/v1/ingest", kapsel("we are replacing our CRM", fixed.Add(-72*time.Hour)))
+	erste := decodeInto[IngestResponse](t, raw)
+	if erste.Inserted != 1 {
+		t.Fatalf("first capture: %+v", erste)
+	}
+
+	_, raw = h.auth("POST", "/api/v1/ingest", kapsel("different post, two weeks later", fixed.Add(-2*time.Hour)))
+	zweite := decodeInto[IngestResponse](t, raw)
+	if zweite.Inserted != 1 {
+		t.Fatalf("second capture reported %+v: a different observation was swallowed", zweite)
+	}
+
+	_, raw = h.auth("GET", "/api/v1/accounts/"+erste.AccountID, nil)
+	detail := decodeInto[AccountDetail](t, raw)
+	if detail.Total != 2 {
+		t.Fatalf("%d signals on the timeline, want 2", detail.Total)
+	}
+}
+
+func TestPressingSendTwiceOnOneCaptureStillCountsOnce(t *testing.T) {
+	h := start(t)
+	kapsel := IngestRequest{
+		Account: &core.Account{Name: "Acme GmbH", Profile: "https://www.linkedin.com/company/acme-gmbh/"},
+		Signals: []core.Signal{{
+			Kind: "post", Source: "linkedin",
+			URL: "https://www.linkedin.com/company/acme-gmbh/", Body: "we are replacing our CRM",
+			OccurredAt: fixed.Add(-72 * time.Hour),
+		}},
+	}
+	h.auth("POST", "/api/v1/ingest", kapsel)
+	_, raw := h.auth("POST", "/api/v1/ingest", kapsel)
+
+	if out := decodeInto[IngestResponse](t, raw); out.Duplicate != 1 || out.Inserted != 0 {
+		t.Fatalf("result = %+v, want the second press recognised as a duplicate", out)
+	}
+}

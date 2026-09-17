@@ -64,13 +64,26 @@ to know yours.
 Anything captured twice has to land once, or the score doubles for an event
 that happened once. vigil derives a fingerprint per signal:
 
-- With a URL: `source`, `kind` and the URL, after the locale subdomain, the
-  tracking parameters and the trailing slash are stripped. The timestamp is
-  deliberately **not** part of it, because LinkedIn renders "2d", which resolves
-  to a different instant on every capture.
-- Without a URL: `source`, `kind`, the account, the person, the exact timestamp
-  and the text. Two notes a minute apart stay two notes, because there is
-  nothing stable left to key on and merging them would lose one.
+The timestamp never enters the identity while a URL is present, because
+LinkedIn renders "2d", which resolves to a different instant on every capture.
+What the URL is worth depends on what it points at:
+
+- **A permalink** such as `/feed/update/urn:li:activity:7100` names one item, so
+  `source`, `kind` and the URL are the whole identity. Two people selecting
+  different halves of the same post still captured one post.
+- **A profile or company page** names a place, not an observation. Everything
+  captured while standing on it carries the same URL, so the title and the body
+  join the identity there. Two observations stay two; pressing Send twice still
+  stays one.
+- **No URL**: `source`, `kind`, the account, the person, the exact timestamp and
+  the text. Two notes a minute apart stay two notes, because nothing stable is
+  left to key on and merging them would lose one.
+
+The middle case was wrong until 17.09.2026: the URL alone decided, so the second
+capture from a company page came back as "already known" and was dropped. It was
+found by driving the extension's popup against a running instance, and it is the
+worst shape a bug can take here, because silent loss and correct deduplication
+look identical from the outside.
 
 ## Time
 

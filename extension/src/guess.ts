@@ -163,8 +163,11 @@ export interface Draft {
 /**
  * draftFrom builds the form the user sees. It never invents an account name:
  * when the page does not say which company this belongs to, `missing` says so
- * and the Send button stays disabled. An invented name creates an account that
- * looks real and matches nothing.
+ * and the account field stays empty. The field is `required`, so the browser
+ * refuses the submit; the button itself is not disabled. Checked in a browser
+ * on 17.09.2026, because the comment here used to claim the button was.
+ *
+ * An invented name creates an account that looks real and matches nothing.
  */
 export function draftFrom(facts: PageFacts, now: Date): Draft {
   const ref = profileFromURL(facts.url);

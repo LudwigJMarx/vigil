@@ -111,3 +111,59 @@ func TestAnIdentifyingQueryParameterIsKept(t *testing.T) {
 		t.Fatal("two different job postings collapsed into one signal")
 	}
 }
+
+func TestTwoObservationsFromOneCompanyPageStayTwoSignals(t *testing.T) {
+	// Found on 17.09.2026 by driving the extension's popup against a running
+	// instance. A company page URL is the same for everything captured from
+	// it, so the second capture of a different post came back as "already
+	// known" and was dropped. Silent data loss that looks like correct
+	// deduplication, which is the worst shape a bug can have here.
+	seite := "https://www.linkedin.com/company/acme-gmbh/"
+	erste := Signal{
+		Source: "linkedin", Kind: "post", AccountID: "acc", URL: seite,
+		Body:       "We are replacing our CRM this quarter.",
+		OccurredAt: time.Date(2026, 9, 14, 16, 16, 0, 0, time.UTC),
+	}
+	zweite := erste
+	zweite.Body = "Different post, two weeks later"
+	zweite.OccurredAt = time.Date(2026, 9, 28, 9, 0, 0, 0, time.UTC)
+
+	if Fingerprint(erste) == Fingerprint(zweite) {
+		t.Fatal("two different observations of one company page collapsed into one signal")
+	}
+}
+
+func TestResendingTheSameCapturedPageIsStillOneSignal(t *testing.T) {
+	// The other half. Pressing Send twice, or capturing the same page again a
+	// minute later, must not double the weight of one observation. That is why
+	// the timestamp stays out of the identity even here: LinkedIn renders "2d".
+	basis := Signal{
+		Source: "linkedin", Kind: "post", AccountID: "acc",
+		URL:        "https://www.linkedin.com/company/acme-gmbh/",
+		Body:       "We are replacing our CRM this quarter.",
+		OccurredAt: time.Date(2026, 9, 14, 16, 16, 0, 0, time.UTC),
+	}
+	nochmal := basis
+	nochmal.URL = "https://de.linkedin.com/company/acme-gmbh?trk=nav"
+	nochmal.OccurredAt = basis.OccurredAt.Add(43 * time.Minute)
+
+	if Fingerprint(basis) != Fingerprint(nochmal) {
+		t.Fatal("the same capture was sent twice and counted twice")
+	}
+}
+
+func TestAPermalinkKeepsItsIdentityWithoutTheText(t *testing.T) {
+	// A post permalink identifies the post on its own. The selection a human
+	// happened to make must not turn one post into two signals.
+	basis := Signal{
+		Source: "linkedin", Kind: "post",
+		URL:  "https://www.linkedin.com/feed/update/urn:li:activity:7100",
+		Body: "the first half of the post",
+	}
+	andere := basis
+	andere.Body = "a different part of the same post"
+
+	if Fingerprint(basis) != Fingerprint(andere) {
+		t.Fatal("one permalink produced two signals because the selection differed")
+	}
+}
