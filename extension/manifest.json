@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "vigil capture",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Send what you are looking at on LinkedIn to your own vigil instance. Nothing is captured until you click.",
   "minimum_chrome_version": "116",
   "action": { "default_popup": "src/popup.html", "default_title": "Capture for vigil" },

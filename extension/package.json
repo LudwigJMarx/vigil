@@ -1,6 +1,6 @@
 {
   "name": "vigil-capture",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Chrome extension that sends what you are looking at to your own vigil instance.",
