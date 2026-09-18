@@ -1,8 +1,11 @@
-# Agenten-Regeln: vigil
+# Technische Notizen: vigil
 
-Projektspezifische Fallen und Leitplanken: die Dinge, die **hier** beissen und
-die man dem Quelltext nicht ansieht. Allgemeine gute Praxis wird vorausgesetzt,
-nicht wiederholt. Diese Datei ist die Wahrheit; `CLAUDE.md` zeigt nur hierher.
+Warum der Code so aussieht, wie er aussieht. Projektspezifische Fallen und
+Leitplanken: die Dinge, die **hier** beissen und die man dem Quelltext nicht
+ansieht. Allgemeine gute Praxis wird vorausgesetzt, nicht wiederholt.
+
+Wer etwas aendert, liest das hier zuerst. Es ist der schnellste Weg zu
+Entscheidungen, die willkuerlich aussehen und es nicht sind.
 
 ## Was dieses Projekt ist
 
@@ -18,9 +21,8 @@ nicht aus Versehen möglich aussieht.
 
 Zielgruppe ist nicht nur Ludwig. Das Repo ist öffentlich und soll von Fremden
 betrieben werden können, ohne Rückfrage. Deshalb sind Quelltext, README und
-alle Dateien unter `docs/` **englisch**; diese Datei, `CLAUDE.md`, die Prüfer
-in `scripts/` und die Workflows sind deutsch, weil sie Hausregeln sind und
-keine Lieferung.
+alle Dateien unter `docs/` **englisch**; diese Datei, die Prüfer in `scripts/`
+und die Workflows sind deutsch, weil sie Hausregeln sind und keine Lieferung.
 
 ## Regeln, die nicht verhandelbar sind
 
